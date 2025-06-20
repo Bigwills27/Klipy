@@ -87,6 +87,14 @@ class ClipboardView extends Multisynq.View {
         menuBtn?.addEventListener('click', () => this.toggleSidebar());
     }
     
+    // Toggle mobile sidebar
+    toggleSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('open');
+        }
+    }
+
     // Setup listeners for model events
     setupModelListeners() {
         // Subscribe to model events using proper scopes
@@ -291,15 +299,35 @@ class ClipboardView extends Multisynq.View {
 
     // Update device display in UI
     updateDeviceDisplay(devices) {
+        const deviceCount = devices.length;
+        
         // Update sync status with device count
         if (this.syncStatus) {
-            const deviceCount = devices.length;
             this.syncStatus.innerHTML = `
                 <div class="device-status">
-                    <div class="device-indicator"></div>
+                    <div class="device-indicator ${this.isDeviceActive ? 'active' : ''}"></div>
                     Connected - ${deviceCount} device${deviceCount === 1 ? '' : 's'} syncing
                 </div>
             `;
+        }
+        
+        // Update dashboard device count stat
+        if (this.deviceCount) {
+            this.deviceCount.textContent = `${deviceCount} device${deviceCount === 1 ? '' : 's'}`;
+        }
+        
+        // Update sync status stat
+        if (this.syncStatusStat) {
+            this.syncStatusStat.textContent = this.isDeviceActive ? 'Active' : 'Ready';
+        }
+        
+        // Update sync indicator in sidebar
+        if (this.syncIndicator) {
+            if (this.isDeviceActive) {
+                this.syncIndicator.classList.add('active');
+            } else {
+                this.syncIndicator.classList.remove('active');
+            }
         }
     }
     
@@ -349,19 +377,19 @@ class ClipboardView extends Multisynq.View {
         const displayText = isLong ? clip.text.substring(0, 200) + '...' : clip.text;
         
         return `
-            <div class="clipboard-entry slide-in" data-clip-id="${clip.id}">
-                <div class="entry-header">
-                    <span class="entry-timestamp">${deviceIndicator} ${timestamp} • ${deviceLabel}</span>
-                    <div class="entry-actions">
-                        <button class="btn-icon copy-btn" onclick="clipboardView.copyClip('${clip.id}')" title="Copy to clipboard">
-                            📋
+            <div class="clipboard-item slide-in" data-clip-id="${clip.id}">
+                <div class="clipboard-item-header">
+                    <span class="clipboard-item-time">${deviceIndicator} ${timestamp} • ${deviceLabel}</span>
+                    <div class="clipboard-item-actions">
+                        <button class="clipboard-item-btn" onclick="clipboardView.copyClip('${clip.id}')" title="Copy to clipboard">
+                            <i class="fas fa-copy"></i>
                         </button>
-                        <button class="btn-icon delete-btn" onclick="clipboardView.deleteClip('${clip.id}')" title="Delete">
-                            ✖️
+                        <button class="clipboard-item-btn" onclick="clipboardView.deleteClip('${clip.id}')" title="Delete">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </div>
-                <div class="entry-text" ${isLong ? `onclick="clipboardView.toggleExpand(this)"` : ''}>
+                <div class="clipboard-item-content" ${isLong ? `onclick="clipboardView.toggleExpand(this)"` : ''}>
                     ${this.escapeHtml(displayText)}
                     ${isLong ? '<span style="opacity: 0.7; cursor: pointer;"> (click to expand)</span>' : ''}
                 </div>
@@ -392,7 +420,7 @@ class ClipboardView extends Multisynq.View {
     
     // Toggle expand for long text
     toggleExpand(element) {
-        const entryElement = element.closest('.clipboard-entry');
+        const entryElement = element.closest('.clipboard-item');
         const clipId = entryElement?.getAttribute('data-clip-id');
         const clip = this.model.getAllClips().find(c => c.id == clipId);
         
@@ -815,5 +843,27 @@ synchronized across devices`,
             const toggle = document.getElementById('auto-clipboard-toggle');
             if (toggle) toggle.checked = false;
         });
+    }
+    
+    // Search clips functionality
+    searchClips(query) {
+        const clipboardItems = document.querySelectorAll('.clipboard-item');
+        const searchTerm = query.toLowerCase().trim();
+        
+        clipboardItems.forEach(item => {
+            const content = item.querySelector('.clipboard-item-content')?.textContent?.toLowerCase() || '';
+            const header = item.querySelector('.clipboard-item-header')?.textContent?.toLowerCase() || '';
+            
+            if (searchTerm === '' || content.includes(searchTerm) || header.includes(searchTerm)) {
+                item.style.display = 'block';
+                item.style.animation = 'fadeIn 0.3s ease-out';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Update results message if needed
+        const visibleItems = document.querySelectorAll('.clipboard-item[style*="display: block"], .clipboard-item:not([style*="display: none"])');
+        console.log(`Search "${query}" found ${visibleItems.length} results`);
     }
 }

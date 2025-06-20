@@ -284,39 +284,32 @@ body {
 }
 
 /* Control Buttons in Sidebar */
-.sync-toggle-btn,
-.auto-clipboard-toggle {
+.nav-item button {
   background: none;
-  border: 1px solid #2a2a2a;
+  border: none;
   color: #cccccc;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 0;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   width: 100%;
-  margin-left: -20px;
-  margin-right: -20px;
-  padding-left: 20px;
-  padding-right: 20px;
+  text-align: left;
 }
 
-.sync-toggle-btn:hover,
-.auto-clipboard-toggle:hover {
-  background: #1a1a1a;
-  border-color: #3a3a3a;
+.nav-item button:hover {
   color: #ffffff;
 }
 
-.sync-toggle-btn[data-active="true"],
-.auto-clipboard-toggle[data-active="true"] {
-  background: #8b5cf6;
-  border-color: #8b5cf6;
-  color: #ffffff;
+.nav-item button[data-active="true"] {
+  color: #8b5cf6;
+}
+
+.nav-item button[data-active="true"] i {
+  color: #8b5cf6;
 }
 
 .sync-indicator {
@@ -628,13 +621,17 @@ body {
   padding: 16px;
   max-width: 400px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  transform: translateX(450px);
+  transform: translateX(calc(100% + 40px));
   transition: transform 0.3s ease;
   z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
 }
 
 .clipboard-notification.show {
   transform: translateX(0);
+  opacity: 1;
+  visibility: visible;
 }
 
 .notification-content {
@@ -706,14 +703,18 @@ body {
   padding: 16px 20px;
   border-radius: 12px;
   box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
-  transform: translateY(100px);
+  transform: translateY(calc(100% + 40px));
   transition: all 0.3s ease;
   z-index: 1000;
   max-width: 350px;
+  opacity: 0;
+  visibility: hidden;
 }
 
 .auto-clipboard-notification.show {
   transform: translateY(0);
+  opacity: 1;
+  visibility: visible;
 }
 
 .auto-clipboard-notification .notification-header {
@@ -767,6 +768,17 @@ body {
   }
 }
 
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -796,6 +808,23 @@ body {
 
 .clipboard-item {
   animation: fadeIn 0.3s ease-out;
+}
+
+/* Utility Classes */
+.hidden {
+  display: none !important;
+}
+
+.show {
+  display: block !important;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.fade-out {
+  animation: fadeOut 0.3s ease-out;
 }
 
 /* Responsive Design */

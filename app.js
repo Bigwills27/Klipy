@@ -13,6 +13,7 @@ class KlipyApp {
         
         this.initializeElements();
         this.bindEvents();
+        this.init();
         
         console.log('Klipy App initialized - Ready for Multisynq');
     }
@@ -68,11 +69,95 @@ class KlipyApp {
         
         // Dashboard actions
         this.logoutBtn?.addEventListener('click', () => this.handleLogout());
+        
+        // Search functionality
+        const searchInput = document.querySelector('.search-input');
+        searchInput?.addEventListener('input', (e) => this.handleSearch(e.target.value));
+        
+        // Sidebar navigation
+        this.setupSidebarNavigation();
     }
     
+    // Setup sidebar navigation functionality
+    setupSidebarNavigation() {
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                // Remove active class from all nav items
+                navItems.forEach(navItem => navItem.classList.remove('active'));
+                
+                // Add active class to clicked item
+                item.classList.add('active');
+                
+                // Handle navigation action
+                const navText = item.querySelector('span')?.textContent;
+                if (navText) {
+                    this.handleNavigation(navText);
+                }
+            });
+        });
+        
+        // Menu toggle for mobile
+        const menuBtn = document.querySelector('.menu-btn');
+        menuBtn?.addEventListener('click', () => {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar?.classList.toggle('open');
+        });
+    }
     
-    // Setup clipboard event listeners (removed - now handled by Multisynq View)
+    // Handle navigation actions
+    handleNavigation(navText) {
+        console.log('Navigating to:', navText);
+        
+        switch(navText) {
+            case 'Dashboard':
+                this.showDashboardView();
+                break;
+            case 'Clipboard History':
+                this.showClipboardHistory();
+                break;
+            case 'Sync Status':
+                this.showSyncStatus();
+                break;
+            case 'Connected Devices':
+                this.showConnectedDevices();
+                break;
+            default:
+                console.log('Unknown navigation:', navText);
+        }
+        
+        // Update breadcrumb
+        const breadcrumb = document.querySelector('.breadcrumb span');
+        if (breadcrumb) {
+            breadcrumb.textContent = navText;
+        }
+    }
     
+    // Show different views
+    showDashboardView() {
+        // Main dashboard view is already shown
+        console.log('Showing dashboard view');
+    }
+    
+    showClipboardHistory() {
+        console.log('Showing clipboard history');
+        // Could scroll to clipboard section or show expanded view
+        const clipboardSection = document.querySelector('.content-section');
+        if (clipboardSection) {
+            clipboardSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+    
+    showSyncStatus() {
+        console.log('Showing sync status');
+        // Could show detailed sync information
+    }
+    
+    showConnectedDevices() {
+        console.log('Showing connected devices');
+        // Could show device management interface
+    }
+
     // Show signup form
     showSignupForm() {
         this.loginForm?.classList.remove('active');
@@ -177,13 +262,25 @@ class KlipyApp {
     async showDashboard() {
         if (!this.currentUser || !this.apiKey) return;
         
-        // Hide auth, show dashboard
-        this.authContainer?.classList.add('hidden');
-        this.dashboardContainer?.classList.remove('hidden');
+        console.log('Showing dashboard for user:', this.currentUser.email);
         
-        // Update user greeting
-        if (this.userNameSpan) {
-            this.userNameSpan.textContent = `Welcome, ${this.currentUser.name}`;
+        // Hide auth container and show dashboard
+        if (this.authContainer) {
+            this.authContainer.style.display = 'none';
+        }
+        if (this.dashboardContainer) {
+            this.dashboardContainer.style.display = 'flex';
+        }
+        
+        // Update user info in sidebar
+        const userNameElement = document.querySelector('.user-name');
+        const userRoleElement = document.querySelector('.user-role');
+        
+        if (userNameElement) {
+            userNameElement.textContent = this.currentUser.name || 'User';
+        }
+        if (userRoleElement) {
+            userRoleElement.textContent = 'Premium User'; // You can customize this based on user data
         }
         
         // Initialize Multisynq session
@@ -206,9 +303,16 @@ class KlipyApp {
         this.clipboardView = null;
         this.isConnected = false;
         
-        // Show auth screen
-        this.dashboardContainer?.classList.add('hidden');
-        this.authContainer?.classList.remove('hidden');
+        // Clear local storage
+        localStorage.removeItem('klipy-token');
+        
+        // Show auth screen and hide dashboard
+        if (this.dashboardContainer) {
+            this.dashboardContainer.style.display = 'none';
+        }
+        if (this.authContainer) {
+            this.authContainer.style.display = 'flex';
+        }
         
         // Reset forms
         this.loginForm?.reset();
@@ -364,9 +468,82 @@ class KlipyApp {
             }, 300);
         }, 3000);
     }
+
+    // Initialize and setup functionality
+    init() {
+        this.bindEvents();
+        this.loadInitialData();
+        this.setupKeyboardShortcuts();
+    }
+
+    // Setup keyboard shortcuts
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + K for search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.querySelector('.search-input');
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            }
+            
+            // Escape to close mobile sidebar
+            if (e.key === 'Escape') {
+                const sidebar = document.querySelector('.sidebar');
+                if (sidebar && sidebar.classList.contains('open')) {
+                    sidebar.classList.remove('open');
+                }
+            }
+        });
+        
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            const sidebar = document.querySelector('.sidebar');
+            const menuBtn = document.querySelector('.menu-btn');
+            
+            if (sidebar && sidebar.classList.contains('open')) {
+                if (!sidebar.contains(e.target) && !menuBtn.contains(e.target)) {
+                    sidebar.classList.remove('open');
+                }
+            }
+        });
+    }
+
+    // Load initial data and setup
+    loadInitialData() {
+        console.log('Loading initial app data...');
+        // Additional initialization can be added here
+    }
+
+    // Handle search functionality
+    handleSearch(query) {
+        console.log('Searching for:', query);
+        
+        // If clipboard view is available, delegate search to it
+        if (this.clipboardView && typeof this.clipboardView.searchClips === 'function') {
+            this.clipboardView.searchClips(query);
+        } else {
+            // Fallback: basic clipboard item filtering
+            const clipboardItems = document.querySelectorAll('.clipboard-item');
+            
+            clipboardItems.forEach(item => {
+                const content = item.querySelector('.clipboard-item-content')?.textContent?.toLowerCase() || '';
+                const header = item.querySelector('.clipboard-item-header')?.textContent?.toLowerCase() || '';
+                const searchTerm = query.toLowerCase();
+                
+                if (content.includes(searchTerm) || header.includes(searchTerm) || query === '') {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+    }
 }
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new KlipyApp();
+    window.app.init();
 });
