@@ -3,59 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Klipy - Clipboard Sync</title>
+    <title>Klipy - Smart Clipboard Sync</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@1.0.4/bundled/multisynq-client.min.js"></script>
 </head>
 <body>
-    <!-- Authentication Section -->
-    <div id="auth-container" class="container">
+    <!-- Authentication Container -->
+    <div id="auth-container" class="auth-container">
         <div class="auth-card">
-            <div class="logo">
-                <h1>📋 Klipy</h1>
-                <p>Sync your clipboard across devices</p>
+            <div class="auth-header">
+                <div class="logo">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Klipy</span>
+                </div>
+                <p class="auth-subtitle">Smart Clipboard Sync Across Devices</p>
             </div>
-            
+
             <!-- Login Form -->
-            <form id="login-form" class="auth-form active">
+            <form id="login-form" class="auth-form">
                 <h2>Welcome Back</h2>
-                <div class="input-group">
-                    <input type="email" id="login-email" placeholder="Email" required>
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" required>
                 </div>
-                <div class="input-group">
-                    <input type="password" id="login-password" placeholder="Password" required>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required>
                 </div>
-                <div class="input-group">
-                    <input type="text" id="login-apikey" placeholder="Multisynq API Key (from multisynq.io/coder)" required>
-                    <small style="color: rgba(255,255,255,0.6); font-size: 0.8rem; margin-top: 5px; display: block;">
-                        Get your free API key from <a href="https://multisynq.io/coder" target="_blank" style="color: #667eea;">multisynq.io/coder</a>
-                    </small>
+                <div class="form-group">
+                    <label for="login-apikey">Multisynq API Key</label>
+                    <input type="text" id="login-apikey" placeholder="Get from multisynq.io/coder" required>
                 </div>
-                <button type="submit" class="btn btn-primary">Sign In</button>
+                <button type="submit" class="auth-btn">Sign In</button>
                 <p class="auth-switch">
                     Don't have an account? 
-                    <a href="#" id="show-signup">Sign up</a>
+                    <a href="#" id="show-signup">Create one</a>
                 </p>
             </form>
-            
+
             <!-- Signup Form -->
-            <form id="signup-form" class="auth-form">
+            <form id="signup-form" class="auth-form" style="display: none;">
                 <h2>Create Account</h2>
-                <div class="input-group">
-                    <input type="text" id="signup-name" placeholder="Full Name" required>
+                <div class="form-group">
+                    <label for="signup-name">Full Name</label>
+                    <input type="text" id="signup-name" required>
                 </div>
-                <div class="input-group">
-                    <input type="email" id="signup-email" placeholder="Email" required>
+                <div class="form-group">
+                    <label for="signup-email">Email</label>
+                    <input type="email" id="signup-email" required>
                 </div>
-                <div class="input-group">
-                    <input type="password" id="signup-password" placeholder="Password" required>
+                <div class="form-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" required>
                 </div>
-                <div class="input-group">
-                    <input type="text" id="signup-apikey" placeholder="Multisynq API Key (from multisynq.io/coder)" required>
-                    <small style="color: rgba(255,255,255,0.6); font-size: 0.8rem; margin-top: 5px; display: block;">
-                        Get your free API key from <a href="https://multisynq.io/coder" target="_blank" style="color: #667eea;">multisynq.io/coder</a>
-                    </small>
+                <div class="form-group">
+                    <label for="signup-apikey">Multisynq API Key</label>
+                    <input type="text" id="signup-apikey" placeholder="Get from multisynq.io/coder" required>
                 </div>
-                <button type="submit" class="btn btn-primary">Create Account</button>
+                <button type="submit" class="auth-btn">Create Account</button>
                 <p class="auth-switch">
                     Already have an account? 
                     <a href="#" id="show-login">Sign in</a>
@@ -65,59 +71,163 @@
     </div>
 
     <!-- Main Dashboard -->
-    <div id="dashboard-container" class="container hidden">
-        <!-- Header -->
-        <header class="dashboard-header">
-            <div class="header-content">
-                <h1>📋 Klipy</h1>
-                <div class="user-actions">
-                    <span id="user-name" class="user-greeting"></span>
-                    <button id="logout-btn" class="btn btn-secondary">Logout</button>
+    <div id="dashboard-container" class="app-container" style="display: none;">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Klipy</span>
                 </div>
+                <div class="version">ver 2.1.0</div>
             </div>
-        </header>
 
-        <!-- Sync Control Section -->
-        <div class="sync-section">
-            <div class="sync-card">
-                <div class="sync-info">
-                    <h3>Clipboard Sync</h3>
-                    <p id="sync-status" class="sync-status">Connecting to Multisynq...</p>
-                    <small id="device-info" class="device-info">Device: Initializing...</small>
+            <div class="user-profile">
+                <div class="avatar">
+                    <i class="fas fa-user"></i>
                 </div>
-                <button id="sync-toggle" class="btn btn-toggle" data-active="false">
-                    Activate Sync
+                <div class="user-info">
+                    <div class="user-name" id="user-name">Loading...</div>
+                    <div class="user-role">Premium User</div>
+                </div>
+                <button class="menu-toggle" id="logout-btn" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
-        </div>
 
-        <!-- Clipboard Entries Section -->
-        <div class="clipboard-section">
-            <div class="section-header">
-                <h3>Recent Clipboard Entries</h3>
-                <span id="entries-count" class="entries-count">0 entries</span>
-            </div>
-            
-            <div id="clipboard-entries" class="clipboard-entries">
-                <div class="empty-state">
-                    <div class="empty-icon">📋</div>
-                    <h4>No clipboard entries yet</h4>
-                    <p>Copy some text to get started</p>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-title">Main</div>
+                    <ul class="nav-list">
+                        <li class="nav-item active">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </li>
+                        <li class="nav-item">
+                            <i class="fas fa-clipboard"></i>
+                            <span>Clipboard History</span>
+                        </li>
+                        <li class="nav-item">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Sync Status</span>
+                            <span class="sync-indicator" id="sync-indicator"></span>
+                        </li>
+                        <li class="nav-item">
+                            <i class="fas fa-devices"></i>
+                            <span>Connected Devices</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-title">Controls</div>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <button id="sync-toggle" class="sync-toggle-btn" data-active="false">
+                                <i class="fas fa-power-off"></i>
+                                <span>Activate Sync</span>
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button id="auto-clipboard-toggle" class="auto-clipboard-toggle" data-active="false">
+                                <i class="fas fa-magic"></i>
+                                <span>Auto Clipboard</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="main-header">
+                <div class="header-left">
+                    <button class="menu-btn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="breadcrumb">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Clipboard Dashboard</span>
+                    </div>
+                </div>
+                <div class="header-center">
+                    <div class="sync-status-display">
+                        <div id="sync-status" class="sync-status">Ready to sync</div>
+                        <div id="device-info" class="device-info">Device: Unknown</div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="header-btn" id="test-clip-btn">
+                        <i class="fas fa-plus"></i>
+                        Test Clip
+                    </button>
+                    <button class="header-btn secondary" id="clear-clips-btn">
+                        <i class="fas fa-trash"></i>
+                        Clear All
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <i class="fas fa-clipboard-list"></i>
+                        <div class="stat-info">
+                            <div class="stat-value" id="entries-count">0 entries</div>
+                            <div class="stat-label">Clipboard History</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-devices"></i>
+                        <div class="stat-info">
+                            <div class="stat-value" id="device-count">1 device</div>
+                            <div class="stat-label">Connected</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-sync-alt"></i>
+                        <div class="stat-info">
+                            <div class="stat-value" id="sync-status-stat">Ready</div>
+                            <div class="stat-label">Sync Status</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2>Recent Clipboard Items</h2>
+                        <div class="section-actions">
+                            <button class="icon-btn" title="Refresh">
+                                <i class="fas fa-refresh"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="clipboard-entries" class="clipboard-grid">
+                        <!-- Clipboard entries will be populated here -->
+                    </div>
                 </div>
             </div>
-        </div>
+        </main>
+    </div>
 
-        <!-- Testing Controls (for development) -->
-        <div class="dev-controls">
-            <button id="test-clip-btn" class="btn btn-outline">Add Test Clip</button>
-            <button id="clear-clips-btn" class="btn btn-outline">Clear All</button>
+    <!-- Clipboard Notification -->
+    <div id="clipboard-notification" class="clipboard-notification">
+        <div class="notification-content">
+            <i class="fas fa-clipboard"></i>
+            <div class="notification-text">
+                <div class="notification-title">New clipboard item</div>
+                <div class="notification-message">Click to copy to your clipboard</div>
+            </div>
+            <div class="notification-actions">
+                <button class="notification-btn primary" id="notification-copy">Copy</button>
+                <button class="notification-btn" id="notification-dismiss">Dismiss</button>
+            </div>
         </div>
     </div>
 
-    <!-- Multisynq CDN -->
-    <meta charset="utf-8">
-    <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@1.0.4/bundled/multisynq-client.min.js"></script>
-    
+    <!-- Scripts -->
     <script src="database.js"></script>
     <script src="clipboard-manager.js"></script>
     <script src="clipboard-model.js"></script>

@@ -8,12 +8,23 @@ class ClipboardManager {
         this.monitoringInterval = null;
         this.listeners = new Map();
         
+        // Auto-clipboard settings
+        this.autoClipboardEnabled = false;
+        this.hasClipboardWritePermission = false;
+        this.lastUserInteraction = Date.now();
+        this.isPageFocused = document.hasFocus();
+        
         // Check clipboard API support
         this.hasClipboardAPI = navigator.clipboard && navigator.clipboard.readText;
+        this.hasClipboardWrite = navigator.clipboard && navigator.clipboard.writeText;
         
         if (!this.hasClipboardAPI) {
             console.warn('Clipboard API not supported in this browser');
         }
+        
+        // Track page focus and user interaction
+        this.setupFocusTracking();
+        this.setupInteractionTracking();
     }
     
     // Event listener system
@@ -197,6 +208,105 @@ class ClipboardManager {
         } catch (error) {
             console.error('Failed to copy to clipboard:', error);
             return false;
+        }
+    }
+    
+    // Setup focus tracking
+    setupFocusTracking() {
+        window.addEventListener('focus', () => {
+            this.isPageFocused = true;
+            console.log('Page focused - auto-clipboard enabled');
+        });
+        
+        window.addEventListener('blur', () => {
+            this.isPageFocused = false;
+            console.log('Page blurred - auto-clipboard disabled');
+        });
+        
+        // Check initial focus state
+        this.isPageFocused = document.hasFocus();
+    }
+    
+    // Setup interaction tracking
+    setupInteractionTracking() {
+        const events = ['click', 'keydown', 'touchstart', 'mousemove'];
+        events.forEach(event => {
+            document.addEventListener(event, () => {
+                this.lastUserInteraction = Date.now();
+            }, { passive: true });
+        });
+    }
+    
+    // Check if we can write to clipboard (page focused + recent interaction)
+    canWriteToClipboard() {
+        const recentInteraction = Date.now() - this.lastUserInteraction < 5000; // 5 seconds
+        return this.hasClipboardWrite && 
+               this.autoClipboardEnabled && 
+               this.isPageFocused && 
+               recentInteraction;
+    }
+    
+    // Request clipboard write permission
+    async requestClipboardWritePermission() {
+        if (!this.hasClipboardWrite) {
+            return false;
+        }
+        
+        try {
+            // Test write permission by attempting to write empty string
+            await navigator.clipboard.writeText('');
+            this.hasClipboardWritePermission = true;
+            console.log('Clipboard write permission granted');
+            return true;
+        } catch (error) {
+            console.warn('Clipboard write permission denied:', error);
+            this.hasClipboardWritePermission = false;
+            return false;
+        }
+    }
+    
+    // Enable auto-clipboard mode
+    async enableAutoClipboard() {
+        const hasPermission = await this.requestClipboardWritePermission();
+        if (hasPermission) {
+            this.autoClipboardEnabled = true;
+            this.emit('auto-clipboard-enabled');
+            return true;
+        }
+        return false;
+    }
+    
+    // Disable auto-clipboard mode
+    disableAutoClipboard() {
+        this.autoClipboardEnabled = false;
+        this.emit('auto-clipboard-disabled');
+    }
+    
+    // Write text to clipboard with approval
+    async writeToClipboard(text, options = {}) {
+        if (!this.hasClipboardWrite) {
+            console.warn('Clipboard write not supported');
+            return { success: false, reason: 'not_supported' };
+        }
+        
+        // Check if we should ask for approval
+        if (options.requireApproval !== false && !options.approved) {
+            return { success: false, reason: 'approval_required', text };
+        }
+        
+        // Check if we can write (focus + recent interaction)
+        if (!this.canWriteToClipboard() && !options.force) {
+            return { success: false, reason: 'no_permission', text };
+        }
+        
+        try {
+            await navigator.clipboard.writeText(text);
+            console.log('Successfully wrote to clipboard:', text.substring(0, 50) + '...');
+            this.emit('clipboard-written', { text });
+            return { success: true, text };
+        } catch (error) {
+            console.error('Failed to write to clipboard:', error);
+            return { success: false, reason: 'write_failed', error: error.message, text };
         }
     }
     

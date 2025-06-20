@@ -17,6 +17,9 @@ class ClipboardView extends Multisynq.View {
         // Track model reference for easy access
         this.model = model;
         
+        // Track current notification for dismissal
+        this.currentNotification = null;
+        
         this.initializeElements();
         this.bindEvents();
         this.setupModelListeners();
@@ -36,12 +39,21 @@ class ClipboardView extends Multisynq.View {
     // Initialize DOM elements
     initializeElements() {
         this.syncToggleBtn = document.getElementById('sync-toggle');
+        this.autoClipboardToggle = document.getElementById('auto-clipboard-toggle');
         this.syncStatus = document.getElementById('sync-status');
         this.deviceInfo = document.getElementById('device-info');
         this.entriesCount = document.getElementById('entries-count');
         this.clipboardEntries = document.getElementById('clipboard-entries');
         this.testClipBtn = document.getElementById('test-clip-btn');
         this.clearClipsBtn = document.getElementById('clear-clips-btn');
+        this.syncIndicator = document.getElementById('sync-indicator');
+        this.deviceCount = document.getElementById('device-count');
+        this.syncStatusStat = document.getElementById('sync-status-stat');
+        
+        // Notification elements
+        this.clipboardNotification = document.getElementById('clipboard-notification');
+        this.notificationCopy = document.getElementById('notification-copy');
+        this.notificationDismiss = document.getElementById('notification-dismiss');
         
         // Update device info immediately
         if (this.deviceInfo) {
@@ -54,14 +66,25 @@ class ClipboardView extends Multisynq.View {
         // Sync toggle
         this.syncToggleBtn?.addEventListener('click', () => this.toggleMonitoring());
         
+        // Auto-clipboard toggle
+        this.autoClipboardToggle?.addEventListener('click', () => this.toggleAutoClipboard());
+        
         // Dev controls
         this.testClipBtn?.addEventListener('click', () => this.addTestClip());
         this.clearClipsBtn?.addEventListener('click', () => this.clearAllClips());
+        
+        // Notification actions
+        this.notificationCopy?.addEventListener('click', () => this.copyNotificationContent());
+        this.notificationDismiss?.addEventListener('click', () => this.dismissNotification());
         
         // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
             this.cleanup();
         });
+        
+        // Mobile sidebar toggle
+        const menuBtn = document.querySelector('.menu-btn');
+        menuBtn?.addEventListener('click', () => this.toggleSidebar());
     }
     
     // Setup listeners for model events
@@ -190,6 +213,12 @@ class ClipboardView extends Multisynq.View {
     // Handle clip added event from model
     handleClipAdded(clip) {
         console.log('Model notified: clip added by', clip.userId, ':', clip.text.substring(0, 30) + '...');
+        
+        // Check if this clip is from another device and we should auto-clipboard it
+        if (clip.deviceId !== this.deviceId && this.isDeviceActive) {
+            this.handleIncomingClip(clip);
+        }
+        
         this.updateClipboardDisplay();
     }
     
@@ -498,5 +527,293 @@ synchronized across devices`,
         });
         
         console.log('User info set in ClipboardView:', this.userName, this.userEmail);
+    }
+    
+    // Handle incoming clip from another device
+    async handleIncomingClip(clip) {
+        console.log('Incoming clip from device:', clip.deviceId, 'Text:', clip.text.substring(0, 50) + '...');
+        
+        // Try auto-clipboard first
+        const writeResult = await this.clipboardManager.writeToClipboard(clip.text, { 
+            requireApproval: true,
+            approved: false 
+        });
+        
+        if (writeResult.success) {
+            this.showClipboardNotification(`Auto-pasted from ${this.getDeviceName(clip.deviceId)}`, 'success');
+        } else if (writeResult.reason === 'approval_required') {
+            this.showClipboardApproval(clip);
+        } else if (writeResult.reason === 'no_permission') {
+            this.showClipboardPending(clip);
+        } else {
+            this.showClipboardFallback(clip);
+        }
+    }
+    
+    // Show approval dialog for clipboard write
+    showClipboardApproval(clip) {
+        const notification = this.createClipboardNotification(
+            `New clipboard from ${this.getDeviceName(clip.deviceId)}`,
+            clip.text,
+            [
+                {
+                    text: 'Paste Now',
+                    action: () => this.approveClipboardWrite(clip),
+                    primary: true
+                },
+                {
+                    text: 'Show Only',
+                    action: () => this.dismissClipboardNotification(),
+                    primary: false
+                }
+            ]
+        );
+    }
+    
+    // Show pending clipboard (when page not focused)
+    showClipboardPending(clip) {
+        const notification = this.createClipboardNotification(
+            'Clipboard ready to paste',
+            `From ${this.getDeviceName(clip.deviceId)}: ${clip.text.substring(0, 100)}...`,
+            [
+                {
+                    text: 'Paste Now',
+                    action: () => this.forceClipboardWrite(clip),
+                    primary: true
+                }
+            ]
+        );
+    }
+    
+    // Show fallback when clipboard write fails
+    showClipboardFallback(clip) {
+        const notification = this.createClipboardNotification(
+            'Manual copy required',
+            clip.text,
+            [
+                {
+                    text: 'Copy Text',
+                    action: () => this.copyToClipboardFallback(clip.text),
+                    primary: true
+                }
+            ]
+        );
+    }
+    
+    // Approve and write to clipboard
+    async approveClipboardWrite(clip) {
+        const result = await this.clipboardManager.writeToClipboard(clip.text, { 
+            approved: true,
+            force: true
+        });
+        
+        if (result.success) {
+            this.showClipboardNotification('Text pasted to clipboard', 'success');
+        } else {
+            this.copyToClipboardFallback(clip.text);
+        }
+        
+        this.dismissClipboardNotification();
+    }
+    
+    // Force clipboard write (when user clicks)
+    async forceClipboardWrite(clip) {
+        const result = await this.clipboardManager.writeToClipboard(clip.text, { 
+            force: true,
+            requireApproval: false
+        });
+        
+        if (result.success) {
+            this.showClipboardNotification('Text pasted to clipboard', 'success');
+        } else {
+            this.copyToClipboardFallback(clip.text);
+        }
+        
+        this.dismissClipboardNotification();
+    }
+    
+    // Fallback copy method using execCommand
+    copyToClipboardFallback(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        
+        try {
+            textarea.select();
+            document.execCommand('copy');
+            this.showClipboardNotification('Text copied to clipboard', 'success');
+        } catch (error) {
+            console.error('Fallback copy failed:', error);
+            this.showClipboardNotification('Copy failed - please copy manually', 'error');
+        } finally {
+            document.body.removeChild(textarea);
+        }
+        
+        this.dismissClipboardNotification();
+    }
+    
+    // Create clipboard notification with actions
+    createClipboardNotification(title, text, actions = []) {
+        // Remove existing notification
+        this.dismissClipboardNotification();
+        
+        const notification = document.createElement('div');
+        notification.className = 'clipboard-notification';
+        notification.innerHTML = `
+            <div class="clipboard-notification-content">
+                <div class="clipboard-notification-title">${title}</div>
+                <div class="clipboard-notification-text">${text.substring(0, 150)}${text.length > 150 ? '...' : ''}</div>
+                <div class="clipboard-notification-actions">
+                    ${actions.map(action => `
+                        <button class="clipboard-notification-btn ${action.primary ? 'primary' : 'secondary'}" 
+                                data-action="${actions.indexOf(action)}">
+                            ${action.text}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+            <button class="clipboard-notification-close">&times;</button>
+        `;
+        
+        // Add styles
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            max-width: 350px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            animation: slideInRight 0.3s ease-out;
+        `;
+        
+        // Add action listeners
+        actions.forEach((action, index) => {
+            const btn = notification.querySelector(`[data-action="${index}"]`);
+            btn?.addEventListener('click', action.action);
+        });
+        
+        // Add close listener
+        notification.querySelector('.clipboard-notification-close')?.addEventListener('click', () => {
+            this.dismissClipboardNotification();
+        });
+        
+        // Auto-dismiss after 10 seconds
+        setTimeout(() => {
+            this.dismissClipboardNotification();
+        }, 10000);
+        
+        document.body.appendChild(notification);
+        this.currentNotification = notification;
+        
+        return notification;
+    }
+    
+    // Simple notification for status messages
+    showClipboardNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `clipboard-status-notification ${type}`;
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? '#38ef7d' : type === 'error' ? '#ff6b6b' : '#667eea'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10001;
+            font-size: 14px;
+            animation: slideInRight 0.3s ease-out;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 3000);
+    }
+    
+    // Dismiss current clipboard notification
+    dismissClipboardNotification() {
+        if (this.currentNotification) {
+            this.currentNotification.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => {
+                if (this.currentNotification && this.currentNotification.parentNode) {
+                    this.currentNotification.parentNode.removeChild(this.currentNotification);
+                }
+                this.currentNotification = null;
+            }, 300);
+        }
+    }
+    
+    // Get device name from device ID (you might want to store this mapping)
+    getDeviceName(deviceId) {
+        // This is a simplified version - you might want to store device names in the model
+        if (deviceId.includes('MacIntel')) return 'Mac';
+        if (deviceId.includes('iPhone')) return 'iPhone';
+        if (deviceId.includes('Android')) return 'Android';
+        return 'Other Device';
+    }
+    
+    // Setup auto-clipboard toggle
+    setupAutoClipboardToggle() {
+        // Check if auto-clipboard toggle already exists
+        let autoToggle = document.getElementById('auto-clipboard-toggle');
+        
+        if (!autoToggle) {
+            // Create auto-clipboard toggle
+            const controlsContainer = document.querySelector('.controls') || document.querySelector('.dashboard-header');
+            if (controlsContainer) {
+                const toggleContainer = document.createElement('div');
+                toggleContainer.className = 'auto-clipboard-container';
+                toggleContainer.innerHTML = `
+                    <label class="auto-clipboard-label">
+                        <input type="checkbox" id="auto-clipboard-toggle" class="auto-clipboard-checkbox">
+                        <span class="auto-clipboard-text">Auto-paste from other devices</span>
+                    </label>
+                `;
+                controlsContainer.appendChild(toggleContainer);
+                autoToggle = document.getElementById('auto-clipboard-toggle');
+            }
+        }
+        
+        if (autoToggle) {
+            autoToggle.addEventListener('change', async (e) => {
+                if (e.target.checked) {
+                    const enabled = await this.clipboardManager.enableAutoClipboard();
+                    if (!enabled) {
+                        e.target.checked = false;
+                        this.showClipboardNotification('Auto-clipboard permission denied', 'error');
+                    } else {
+                        this.showClipboardNotification('Auto-clipboard enabled', 'success');
+                    }
+                } else {
+                    this.clipboardManager.disableAutoClipboard();
+                    this.showClipboardNotification('Auto-clipboard disabled', 'info');
+                }
+            });
+        }
+        
+        // Listen for clipboard manager events
+        this.clipboardManager.on('auto-clipboard-enabled', () => {
+            const toggle = document.getElementById('auto-clipboard-toggle');
+            if (toggle) toggle.checked = true;
+        });
+        
+        this.clipboardManager.on('auto-clipboard-disabled', () => {
+            const toggle = document.getElementById('auto-clipboard-toggle');
+            if (toggle) toggle.checked = false;
+        });
     }
 }
