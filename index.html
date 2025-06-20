@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klipy - Clipboard Sync</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Authentication Section -->
+    <div id="auth-container" class="container">
+        <div class="auth-card">
+            <div class="logo">
+                <h1>📋 Klipy</h1>
+                <p>Sync your clipboard across devices</p>
+            </div>
+            
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form active">
+                <h2>Welcome Back</h2>
+                <div class="input-group">
+                    <input type="email" id="login-email" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="login-password" placeholder="Password" required>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="login-apikey" placeholder="Multisynq API Key (from multisynq.io/coder)" required>
+                    <small style="color: rgba(255,255,255,0.6); font-size: 0.8rem; margin-top: 5px; display: block;">
+                        Get your free API key from <a href="https://multisynq.io/coder" target="_blank" style="color: #667eea;">multisynq.io/coder</a>
+                    </small>
+                </div>
+                <button type="submit" class="btn btn-primary">Sign In</button>
+                <p class="auth-switch">
+                    Don't have an account? 
+                    <a href="#" id="show-signup">Sign up</a>
+                </p>
+            </form>
+            
+            <!-- Signup Form -->
+            <form id="signup-form" class="auth-form">
+                <h2>Create Account</h2>
+                <div class="input-group">
+                    <input type="text" id="signup-name" placeholder="Full Name" required>
+                </div>
+                <div class="input-group">
+                    <input type="email" id="signup-email" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="signup-password" placeholder="Password" required>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="signup-apikey" placeholder="Multisynq API Key (from multisynq.io/coder)" required>
+                    <small style="color: rgba(255,255,255,0.6); font-size: 0.8rem; margin-top: 5px; display: block;">
+                        Get your free API key from <a href="https://multisynq.io/coder" target="_blank" style="color: #667eea;">multisynq.io/coder</a>
+                    </small>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Account</button>
+                <p class="auth-switch">
+                    Already have an account? 
+                    <a href="#" id="show-login">Sign in</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard-container" class="container hidden">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <h1>📋 Klipy</h1>
+                <div class="user-actions">
+                    <span id="user-name" class="user-greeting"></span>
+                    <button id="logout-btn" class="btn btn-secondary">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sync Control Section -->
+        <div class="sync-section">
+            <div class="sync-card">
+                <div class="sync-info">
+                    <h3>Clipboard Sync</h3>
+                    <p id="sync-status" class="sync-status">Connecting to Multisynq...</p>
+                    <small id="device-info" class="device-info">Device: Initializing...</small>
+                </div>
+                <button id="sync-toggle" class="btn btn-toggle" data-active="false">
+                    Activate Sync
+                </button>
+            </div>
+        </div>
+
+        <!-- Clipboard Entries Section -->
+        <div class="clipboard-section">
+            <div class="section-header">
+                <h3>Recent Clipboard Entries</h3>
+                <span id="entries-count" class="entries-count">0 entries</span>
+            </div>
+            
+            <div id="clipboard-entries" class="clipboard-entries">
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <h4>No clipboard entries yet</h4>
+                    <p>Copy some text to get started</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Testing Controls (for development) -->
+        <div class="dev-controls">
+            <button id="test-clip-btn" class="btn btn-outline">Add Test Clip</button>
+            <button id="clear-clips-btn" class="btn btn-outline">Clear All</button>
+        </div>
+    </div>
+
+    <!-- Multisynq CDN -->
+    <meta charset="utf-8">
+    <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@1.0.4/bundled/multisynq-client.min.js"></script>
+    
+    <script src="database.js"></script>
+    <script src="clipboard-manager.js"></script>
+    <script src="clipboard-model.js"></script>
+    <script src="clipboard-view.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

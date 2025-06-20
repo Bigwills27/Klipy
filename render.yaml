@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: klipy-clipboard-sync
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        fromDatabase:
+          name: klipy-mongodb
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+    autoDeploy: false
