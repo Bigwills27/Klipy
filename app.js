@@ -78,6 +78,18 @@ class KlipyApp {
 
     // Sidebar navigation
     this.setupSidebarNavigation();
+
+    // Mobile sidebar toggle
+    const menuBtn = document.querySelector('.menu-btn');
+    const closeBtn = document.getElementById('close-sidebar-btn');
+    menuBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.openSidebar();
+    });
+    closeBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.closeSidebar();
+    });
   }
 
   // Setup sidebar navigation functionality
@@ -97,13 +109,6 @@ class KlipyApp {
           this.handleNavigation(navText);
         }
       });
-    });
-
-    // Menu toggle for mobile
-    const menuBtn = document.querySelector(".menu-btn");
-    menuBtn?.addEventListener("click", () => {
-      const sidebar = document.querySelector(".sidebar");
-      sidebar?.classList.toggle("open");
     });
   }
 
@@ -521,22 +526,7 @@ class KlipyApp {
 
       // Escape to close mobile sidebar
       if (e.key === "Escape") {
-        const sidebar = document.querySelector(".sidebar");
-        if (sidebar && sidebar.classList.contains("open")) {
-          sidebar.classList.remove("open");
-        }
-      }
-    });
-
-    // Close sidebar when clicking outside on mobile
-    document.addEventListener("click", (e) => {
-      const sidebar = document.querySelector(".sidebar");
-      const menuBtn = document.querySelector(".menu-btn");
-
-      if (sidebar && sidebar.classList.contains("open")) {
-        if (!sidebar.contains(e.target) && !menuBtn.contains(e.target)) {
-          sidebar.classList.remove("open");
-        }
+        this.closeSidebar();
       }
     });
   }
@@ -582,6 +572,33 @@ class KlipyApp {
           item.style.display = "none";
         }
       });
+    }
+  }
+
+  // Open sidebar
+  openSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      sidebar.classList.add('open');
+    }
+  }
+
+  // Close sidebar
+  closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      sidebar.classList.remove('open');
+    }
+  }
+
+  // Toggle sidebar (kept for backward compatibility)
+  toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    if (sidebar.classList.contains('open')) {
+      sidebar.classList.remove('open');
+    } else {
+      sidebar.classList.add('open');
     }
   }
 }
