@@ -24,7 +24,12 @@
   "devDependencies": {
     "nodemon": "^3.0.2"
   },
-  "keywords": ["clipboard", "sync", "multisynq", "cross-device"],
+  "keywords": [
+    "clipboard",
+    "sync",
+    "multisynq",
+    "cross-device"
+  ],
   "author": "Your Name",
   "license": "MIT"
 }

@@ -4,7 +4,7 @@ A cross-device clipboard syncing app built with **vanilla JavaScript** and **Mul
 
 ## ✨ Features
 
-- **Real-time sync** across multiple devices using Multisynq P2P network  
+- **Real-time sync** across multiple devices using Multisynq P2P network
 - **User authentication** with MongoDB persistence
 - **Device management** - activate/deactivate devices for sync
 - **Cross-platform** - works in any modern web browser (Desktop & Mobile)
@@ -13,8 +13,9 @@ A cross-device clipboard syncing app built with **vanilla JavaScript** and **Mul
 ## 🚀 Deployment on Render
 
 ### Prerequisites
+
 - Render account
-- MongoDB Atlas account  
+- MongoDB Atlas account
 - Multisynq API key from [multisynq.io/coder](https://multisynq.io/coder/)
 
 ### Quick Deploy Steps
@@ -22,10 +23,12 @@ A cross-device clipboard syncing app built with **vanilla JavaScript** and **Mul
 1. **Fork this repository** to your GitHub account
 
 2. **Create MongoDB Database**
+
    - Create MongoDB Atlas cluster
    - Get connection string (format: `mongodb+srv://username:password@cluster.mongodb.net/klipy`)
 
 3. **Deploy to Render**
+
    - Go to [render.com](https://render.com) and sign up/login
    - Click "New +" → "Web Service"
    - Connect your GitHub repository
@@ -44,15 +47,16 @@ A cross-device clipboard syncing app built with **vanilla JavaScript** and **Mul
 
 ### Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
+| Variable      | Description               | Example                                             |
+| ------------- | ------------------------- | --------------------------------------------------- |
 | `MONGODB_URI` | MongoDB connection string | `mongodb+srv://user:pass@cluster.mongodb.net/klipy` |
-| `JWT_SECRET` | Secret for JWT tokens | `your-super-secret-key-here` |
-| `NODE_ENV` | Environment | `production` |
+| `JWT_SECRET`  | Secret for JWT tokens     | `your-super-secret-key-here`                        |
+| `NODE_ENV`    | Environment               | `production`                                        |
 
 ## 💻 Local Development
 
 1. **Clone & Install**
+
    ```bash
    git clone <your-repo-url>
    cd Klipy
@@ -60,12 +64,14 @@ A cross-device clipboard syncing app built with **vanilla JavaScript** and **Mul
    ```
 
 2. **Environment Setup**
+
    ```bash
    cp .env.example .env
    # Edit .env with your MongoDB URI and JWT secret
    ```
 
 3. **Start Development Server**
+
    ```bash
    npm run dev
    ```
@@ -77,14 +83,17 @@ A cross-device clipboard syncing app built with **vanilla JavaScript** and **Mul
 ## 📱 Usage
 
 1. **Sign Up**
+
    - Create account with your Multisynq API key
    - Each user gets their own secure sync room
 
 2. **Login on Multiple Devices**
+
    - Use same credentials on all devices
    - Each device registers automatically
 
 3. **Activate Sync**
+
    - Click "Activate Sync" to start monitoring
    - Grant clipboard permissions when prompted
 
@@ -103,7 +112,7 @@ A cross-device clipboard syncing app built with **vanilla JavaScript** and **Mul
 ## 🔧 API Endpoints
 
 - `POST /api/users` - User authentication & creation
-- `GET/POST /api/devices` - Device management  
+- `GET/POST /api/devices` - Device management
 - `GET/POST /api/sessions` - Session management
 
 ## 🤝 Contributing
@@ -121,6 +130,7 @@ MIT License - see LICENSE file for details
 ---
 
 **Ready to deploy?** Just follow the Render deployment steps above! 🚀
+
 - **Device awareness** - see which device each clip came from
 - **Smart deduplication** - prevents duplicate entries
 - **Local clipboard monitoring** - automatically detects copied text
@@ -129,17 +139,20 @@ MIT License - see LICENSE file for details
 ## 🚀 Quick Start
 
 ### 1. Get Your Free Multisynq API Key
+
 1. Go to [multisynq.io/coder](https://multisynq.io/coder)
 2. Sign up for a free account
 3. Copy your API key
 
 ### 2. Open the App
+
 1. Open `index.html` in your web browser
 2. Enter any email/password (authentication is simulated)
 3. **Important**: Paste your Multisynq API key in the API key field
 4. Click "Sign In"
 
 ### 3. Start Syncing
+
 1. Click "Activate Sync" to start monitoring your clipboard
 2. Copy some text anywhere on your device
 3. Open the same app on another device/browser tab
@@ -149,11 +162,13 @@ MIT License - see LICENSE file for details
 ## 🏗️ Architecture
 
 ### Multisynq Integration
+
 - **Model** (`clipboard-model.js`) - Manages synchronized clipboard state
 - **View** (`clipboard-view.js`) - Handles UI and local clipboard monitoring
 - **Session** - Automatic P2P synchronization via Multisynq's global network
 
 ### Key Components
+
 - `app.js` - Main application logic and Multisynq session management
 - `clipboard-manager.js` - Local clipboard monitoring using Web APIs
 - `styles.css` - Modern responsive UI styling
@@ -162,19 +177,24 @@ MIT License - see LICENSE file for details
 ## 🔧 Technical Details
 
 ### Multisynq Model-View Pattern
+
 The app follows Multisynq's architectural pattern:
+
 - **Model**: Synchronized state that's identical across all connected devices
 - **View**: Device-specific UI and input handling
 - **Events**: Pub/sub communication between models and views
 
 ### Clipboard Monitoring
+
 Uses modern Web APIs with fallbacks:
+
 - `navigator.clipboard.readText()` for reading clipboard
 - `navigator.clipboard.writeText()` for writing to clipboard
 - Paste event listeners as fallback
 - Polling for real-time detection
 
 ### Security
+
 - End-to-end encryption via Multisynq
 - Auto-generated session passwords
 - No server-side storage of clipboard data
@@ -190,6 +210,7 @@ Uses modern Web APIs with fallbacks:
 ## 🛠️ Development
 
 ### Project Structure
+
 ```
 Klipy/
 ├── index.html              # Main HTML file
@@ -202,12 +223,14 @@ Klipy/
 ```
 
 ### Testing Multi-Device Sync
+
 1. Open the app in multiple browser tabs/windows
 2. Use the same email but different names to simulate different devices
 3. Use the same API key to join the same sync session
 4. Test copying text in one tab and seeing it appear in others
 
 ### Development Features
+
 - **Add Test Clip**: Adds random test content for testing
 - **Clear All**: Removes all clipboard entries from sync
 - **Console Logging**: Detailed logs of sync events and clipboard activity

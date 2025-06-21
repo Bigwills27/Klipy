@@ -1,14 +1,8 @@
 // Multisynq Model for Clipboard Synchronization
-
-// Define constants for the session
-const Q = Multisynq.Constants;
-Q.MAX_CLIPS = 100;
-Q.DEVICE_TIMEOUT = 300000; // 5 minutes in milliseconds
-
 class ClipboardModel extends Multisynq.Model {
   init() {
     this.clips = [];
-    this.maxClips = Q.MAX_CLIPS;
+    this.maxClips = 100;
     this.lastActivity = this.now();
     this.connectedDevices = new Map(); // Map<deviceId, deviceInfo>
     this.deviceViewMap = new Map(); // Map<viewId, deviceId>
@@ -18,22 +12,15 @@ class ClipboardModel extends Multisynq.Model {
     this.subscribe("clipboard", "remove-clip", this.handleRemoveClip);
     this.subscribe("clipboard", "clear-clips", this.handleClearClips);
     this.subscribe("clipboard", "register-device", this.handleRegisterDevice);
-    this.subscribe("clipboard", "update-device", this.handleUpdateDevice);
     this.subscribe(
       "clipboard",
       "unregister-device",
       this.handleUnregisterDevice
     );
-    this.subscribe("clipboard", "activate-device", this.handleActivateDevice);
-    this.subscribe(
-      "clipboard",
-      "deactivate-device",
-      this.handleDeactivateDevice
-    );
 
-    // Subscribe to system events using sessionId as scope
-    this.subscribe(this.sessionId, "view-join", this.handleViewJoin);
-    this.subscribe(this.sessionId, "view-exit", this.handleViewExit);
+    // Subscribe to system events
+    this.subscribe("", "view-join", this.handleDeviceJoin);
+    this.subscribe("", "view-exit", this.handleDeviceExit);
 
     console.log("ClipboardModel initialized at", this.now());
   }
@@ -123,7 +110,6 @@ class ClipboardModel extends Multisynq.Model {
       // Update last activity time
       const device = this.connectedDevices.get(data.deviceId);
       device.lastActivity = this.now();
-      device.viewId = data.viewId; // Update viewId
       this.connectedDevices.set(data.deviceId, device);
     } else {
       // Register new device
@@ -131,15 +117,13 @@ class ClipboardModel extends Multisynq.Model {
         deviceId: data.deviceId,
         userId: data.userId,
         deviceName: data.deviceName || "Unknown Device",
-        viewId: data.viewId,
-        isActive: false, // Devices start inactive
         joinTime: this.now(),
         lastActivity: this.now(),
       });
       console.log("New device registered:", data.deviceId);
     }
 
-    // Store device-to-view mapping
+    // Store device-to-view mapping if viewId is provided
     if (data.viewId) {
       this.deviceViewMap.set(data.viewId, data.deviceId);
     }
@@ -151,52 +135,6 @@ class ClipboardModel extends Multisynq.Model {
     });
 
     console.log("Device registered:", data.deviceId);
-  }
-
-  // Handle device activation (user clicks "Activate Sync")
-  handleActivateDevice(data) {
-    if (this.connectedDevices.has(data.deviceId)) {
-      const device = this.connectedDevices.get(data.deviceId);
-      device.isActive = true;
-      device.lastActivity = this.now();
-      this.connectedDevices.set(data.deviceId, device);
-
-      // Notify all views
-      this.publish("clipboard", "devices-updated", {
-        devices: Array.from(this.connectedDevices.values()),
-        count: this.connectedDevices.size,
-      });
-
-      this.publish("clipboard", "device-activated", {
-        deviceId: data.deviceId,
-        deviceName: device.deviceName,
-      });
-
-      console.log("Device activated:", data.deviceId);
-    }
-  }
-
-  // Handle device deactivation (user clicks "Deactivate Sync")
-  handleDeactivateDevice(data) {
-    if (this.connectedDevices.has(data.deviceId)) {
-      const device = this.connectedDevices.get(data.deviceId);
-      device.isActive = false;
-      device.lastActivity = this.now();
-      this.connectedDevices.set(data.deviceId, device);
-
-      // Notify all views
-      this.publish("clipboard", "devices-updated", {
-        devices: Array.from(this.connectedDevices.values()),
-        count: this.connectedDevices.size,
-      });
-
-      this.publish("clipboard", "device-deactivated", {
-        deviceId: data.deviceId,
-        deviceName: device.deviceName,
-      });
-
-      console.log("Device deactivated:", data.deviceId);
-    }
   }
 
   // Handle device unregistration
@@ -222,54 +160,19 @@ class ClipboardModel extends Multisynq.Model {
     }
   }
 
-  // Handle device update (when user info is added after login)
-  handleUpdateDevice(data) {
-    if (this.connectedDevices.has(data.deviceId)) {
-      const device = this.connectedDevices.get(data.deviceId);
-      // Update device with user information
-      device.userId = data.userId;
-      device.lastActivity = this.now();
-      if (data.deviceName) device.deviceName = data.deviceName;
-      if (data.viewId) device.viewId = data.viewId;
-
-      this.connectedDevices.set(data.deviceId, device);
-
-      // Update device-to-view mapping
-      if (data.viewId) {
-        this.deviceViewMap.set(data.viewId, data.deviceId);
-      }
-
-      // Notify all views about device changes
-      this.publish("clipboard", "devices-updated", {
-        devices: Array.from(this.connectedDevices.values()),
-        count: this.connectedDevices.size,
-      });
-
-      console.log(
-        "Device updated with user info:",
-        data.deviceId,
-        "User:",
-        data.userId
-      );
-    }
-  }
-
-  // Handle view join system event
-  handleViewJoin(viewId) {
-    console.log("System: View joined", viewId);
+  // Handle device join system event
+  handleDeviceJoin(data) {
+    console.log("System: Device joined", data.viewId);
     // The actual device info will come via register-device event
-    // We just track that a new view has joined
   }
 
-  // Handle view exit system event
-  handleViewExit(viewId) {
-    console.log("System: View exited", viewId);
-
+  // Handle device exit system event
+  handleDeviceExit(data) {
     // Find and remove device by viewId
-    const deviceId = this.deviceViewMap.get(viewId);
+    const deviceId = this.deviceViewMap.get(data.viewId);
     if (deviceId && this.connectedDevices.has(deviceId)) {
       this.connectedDevices.delete(deviceId);
-      this.deviceViewMap.delete(viewId);
+      this.deviceViewMap.delete(data.viewId);
 
       // Notify all views about device changes
       this.publish("clipboard", "devices-updated", {
@@ -277,12 +180,7 @@ class ClipboardModel extends Multisynq.Model {
         count: this.connectedDevices.size,
       });
 
-      this.publish("clipboard", "device-disconnected", {
-        deviceId,
-        viewId,
-      });
-
-      console.log("Device disconnected:", deviceId, "viewId:", viewId);
+      console.log("System: Device left", data.viewId, "deviceId:", deviceId);
     }
   }
 
