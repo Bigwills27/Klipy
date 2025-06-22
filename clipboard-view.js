@@ -96,18 +96,6 @@ class ClipboardView extends Multisynq.View {
     window.addEventListener("beforeunload", () => {
       this.cleanup();
     });
-
-    // Mobile sidebar toggle
-    const menuBtn = document.querySelector(".menu-btn");
-    menuBtn?.addEventListener("click", () => this.toggleSidebar());
-  }
-
-  // Toggle mobile sidebar
-  toggleSidebar() {
-    const sidebar = document.querySelector(".sidebar");
-    if (sidebar) {
-      sidebar.classList.toggle("open");
-    }
   }
 
   // Setup listeners for model events
@@ -202,7 +190,8 @@ class ClipboardView extends Multisynq.View {
     // Update UI
     this.syncToggleBtn?.setAttribute("data-active", "true");
     if (this.syncToggleBtn) {
-      this.syncToggleBtn.textContent = "Deactivate Sync";
+      this.syncToggleBtn.innerHTML =
+        '<i class="fas fa-sync-alt"></i><span>Deactivate Sync</span>';
     }
     if (this.syncStatus) {
       this.syncStatus.textContent = "Syncing clipboard across devices - Active";
@@ -232,7 +221,8 @@ class ClipboardView extends Multisynq.View {
     // Update UI
     this.syncToggleBtn?.setAttribute("data-active", "false");
     if (this.syncToggleBtn) {
-      this.syncToggleBtn.textContent = "Activate Sync";
+      this.syncToggleBtn.innerHTML =
+        '<i class="fas fa-sync-alt"></i><span>Activate Sync</span>';
     }
     if (this.syncStatus) {
       this.syncStatus.textContent = "Click to activate syncing";
@@ -379,7 +369,7 @@ class ClipboardView extends Multisynq.View {
         : "Ready";
     }
 
-    // Update sync indicator in sidebar
+    // Update sync indicator in status display
     if (this.syncIndicator) {
       if (this.isDeviceActive) {
         this.syncIndicator.classList.add("active");
@@ -970,6 +960,28 @@ synchronized across devices`,
       const toggle = document.getElementById("auto-clipboard-toggle");
       if (toggle) toggle.checked = false;
     });
+  }
+
+  // Toggle auto clipboard functionality
+  toggleAutoClipboard() {
+    if (this.clipboardManager.autoClipboardEnabled) {
+      this.clipboardManager.disableAutoClipboard();
+      this.autoClipboardToggle?.setAttribute("data-active", "false");
+      if (this.autoClipboardToggle) {
+        this.autoClipboardToggle.innerHTML =
+          '<i class="fas fa-clipboard-check"></i><span>Auto Clipboard</span>';
+      }
+    } else {
+      this.clipboardManager.enableAutoClipboard().then((enabled) => {
+        if (enabled) {
+          this.autoClipboardToggle?.setAttribute("data-active", "true");
+          if (this.autoClipboardToggle) {
+            this.autoClipboardToggle.innerHTML =
+              '<i class="fas fa-clipboard-check"></i><span>Auto Clipboard On</span>';
+          }
+        }
+      });
+    }
   }
 
   // Search clips functionality

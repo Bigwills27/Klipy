@@ -380,7 +380,8 @@ body {
     align-items: center;
     gap: 8px;
     color: #cccccc;
-    font-size: 14px;
+    font-size: 1.1em;
+    font-weight: 900;
 }
 
 .breadcrumb i {

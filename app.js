@@ -75,84 +75,6 @@ class KlipyApp {
     searchInput?.addEventListener("input", (e) =>
       this.handleSearch(e.target.value)
     );
-
-    // Sidebar navigation
-    this.setupSidebarNavigation();
-
-    // Mobile sidebar toggle
-    const menuBtn = document.querySelector('.menu-btn');
-    const closeBtn = document.getElementById('close-sidebar-btn');
-    menuBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.openSidebar();
-    });
-    closeBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.closeSidebar();
-    });
-  }
-
-  // Setup sidebar navigation functionality
-  setupSidebarNavigation() {
-    const navItems = document.querySelectorAll(".nav-item");
-    navItems.forEach((item) => {
-      item.addEventListener("click", () => {
-        // Remove active class from all nav items
-        navItems.forEach((navItem) => navItem.classList.remove("active"));
-
-        // Add active class to clicked item
-        item.classList.add("active");
-
-        // Handle navigation action
-        const navText = item.querySelector("span")?.textContent;
-        if (navText) {
-          this.handleNavigation(navText);
-        }
-      });
-    });
-  }
-
-  // Handle navigation actions
-  handleNavigation(navText) {
-    console.log("Navigating to:", navText);
-
-    switch (navText) {
-      case "Dashboard":
-        this.showDashboardView();
-        break;
-      case "Clipboard History":
-        this.showClipboardHistory();
-        break;
-      case "Sync Status":
-        this.showSyncStatus();
-        break;
-      case "Connected Devices":
-        this.showConnectedDevices();
-        break;
-      default:
-        console.log("Unknown navigation:", navText);
-    }
-
-    // Update breadcrumb
-    const breadcrumb = document.querySelector(".breadcrumb span");
-    if (breadcrumb) {
-      breadcrumb.textContent = navText;
-    }
-  }
-
-  // Show different views
-  showDashboardView() {
-    // Main dashboard view is already shown
-    console.log("Showing dashboard view");
-  }
-
-  showClipboardHistory() {
-    console.log("Showing clipboard history");
-    // Could scroll to clipboard section or show expanded view
-    const clipboardSection = document.querySelector(".content-section");
-    if (clipboardSection) {
-      clipboardSection.scrollIntoView({ behavior: "smooth" });
-    }
   }
 
   showSyncStatus() {
@@ -179,6 +101,7 @@ class KlipyApp {
 
   // Handle login with database authentication
   async handleLogin() {
+    const loginBtn = document.querySelector("#login-form .auth-btn");
     const email = document.getElementById("login-email")?.value;
     const password = document.getElementById("login-password")?.value;
     const apiKey = document.getElementById("login-apikey")?.value;
@@ -187,6 +110,11 @@ class KlipyApp {
       alert("Please fill in all fields including your Multisynq API key");
       return;
     }
+
+    // Set loading state
+    loginBtn.classList.add("loading");
+    loginBtn.disabled = true;
+    loginBtn.textContent = "Signing In...";
 
     try {
       // Authenticate with database
@@ -219,11 +147,17 @@ class KlipyApp {
       } else {
         alert(`Login failed: ${error.message || "Please try again."}`);
       }
+    } finally {
+      // Remove loading state
+      loginBtn.classList.remove("loading");
+      loginBtn.disabled = false;
+      loginBtn.textContent = "Sign In";
     }
   }
 
   // Handle signup with database
   async handleSignup() {
+    const signupBtn = document.querySelector("#signup-form .auth-btn");
     const name = document.getElementById("signup-name")?.value;
     const email = document.getElementById("signup-email")?.value;
     const password = document.getElementById("signup-password")?.value;
@@ -233,6 +167,11 @@ class KlipyApp {
       alert("Please fill in all fields including your Multisynq API key");
       return;
     }
+
+    // Set loading state
+    signupBtn.classList.add("loading");
+    signupBtn.disabled = true;
+    signupBtn.textContent = "Creating Account...";
 
     try {
       // Create user in database
@@ -270,6 +209,11 @@ class KlipyApp {
       } else {
         alert(`Signup failed: ${error.message || "Please try again."}`);
       }
+    } finally {
+      // Remove loading state
+      signupBtn.classList.remove("loading");
+      signupBtn.disabled = false;
+      signupBtn.textContent = "Create Account";
     }
   }
 
@@ -287,7 +231,7 @@ class KlipyApp {
       this.dashboardContainer.style.display = "flex";
     }
 
-    // Update user info in sidebar
+    // Update user info in header
     const userNameElement = document.querySelector(".user-name");
     const userRoleElement = document.querySelector(".user-role");
 
@@ -407,6 +351,9 @@ class KlipyApp {
         this.syncStatus.classList.add("active");
       }
 
+      // Setup connection stability features
+      this.setupConnectionStability();
+
       console.log("Successfully connected to Multisynq session");
     } catch (error) {
       console.error("Failed to initialize Multisynq:", error);
@@ -506,10 +453,26 @@ class KlipyApp {
   }
 
   // Initialize and setup functionality
-  init() {
+  //  init() {
+  //    this.bindEvents();
+  //    this.loadInitialData();
+  //    this.setupKeyboardShortcuts();
+  //    this.setupConnectionStability();
+  //  }
+  async init() {
     this.bindEvents();
     this.loadInitialData();
     this.setupKeyboardShortcuts();
+    // Attempt to restore previous session state
+    if (this.restoreSessionState()) {
+      try {
+        await this.initializeMultisynq();
+        await this.showDashboard();
+      } catch (e) {
+        console.warn("Auto session restore failed:", e);
+      }
+    }
+    this.setupConnectionStability();
   }
 
   // Setup keyboard shortcuts
@@ -523,11 +486,6 @@ class KlipyApp {
           searchInput.focus();
         }
       }
-
-      // Escape to close mobile sidebar
-      if (e.key === "Escape") {
-        this.closeSidebar();
-      }
     });
   }
 
@@ -537,68 +495,293 @@ class KlipyApp {
     // Additional initialization can be added here
   }
 
-  // Handle search functionality
-  handleSearch(query) {
-    console.log("Searching for:", query);
+  // Setup connection stability features
+  setupConnectionStability() {
+    // 1. Keep-alive mechanism - ping every 30 seconds
+    this.keepAliveInterval = setInterval(() => {
+      this.pingSession();
+    }, 30000);
 
-    // If clipboard view is available, delegate search to it
-    if (
-      this.clipboardView &&
-      typeof this.clipboardView.searchClips === "function"
-    ) {
-      this.clipboardView.searchClips(query);
-    } else {
-      // Fallback: basic clipboard item filtering
-      const clipboardItems = document.querySelectorAll(".clipboard-item");
+    // 2. Handle page visibility changes
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        console.log("Tab became hidden - maintaining connection");
+        this.handleTabHidden();
+      } else {
+        console.log("Tab became visible - checking connection");
+        this.handleTabVisible();
+      }
+    });
 
-      clipboardItems.forEach((item) => {
-        const content =
-          item
-            .querySelector(".clipboard-item-content")
-            ?.textContent?.toLowerCase() || "";
-        const header =
-          item
-            .querySelector(".clipboard-item-header")
-            ?.textContent?.toLowerCase() || "";
-        const searchTerm = query.toLowerCase();
+    // 3. Handle page focus/blur
+    window.addEventListener("focus", () => {
+      console.log("Window focused - checking connection");
+      this.checkAndReconnect();
+    });
 
-        if (
-          content.includes(searchTerm) ||
-          header.includes(searchTerm) ||
-          query === ""
-        ) {
-          item.style.display = "block";
-        } else {
-          item.style.display = "none";
+    window.addEventListener("blur", () => {
+      console.log("Window blurred - saving state");
+      this.saveSessionState();
+    });
+
+    // 4. Handle beforeunload to maintain session
+    window.addEventListener("beforeunload", () => {
+      console.log("Page unloading - saving session state");
+      this.saveSessionState();
+    });
+
+    // 5. Network status monitoring
+    window.addEventListener("online", () => {
+      console.log("Network came online - reconnecting");
+      this.checkAndReconnect();
+    });
+
+    window.addEventListener("offline", () => {
+      console.log("Network went offline");
+      this.handleNetworkOffline();
+    });
+
+    // 6. Connection monitoring timer
+    this.connectionCheckInterval = setInterval(() => {
+      this.monitorConnection();
+    }, 5000); // Check every 5 seconds
+  }
+
+  // Ping session to keep it alive
+  async pingSession() {
+    if (!this.session || !this.isConnected) return;
+
+    try {
+      // Send a lightweight ping to keep the session active
+      if (this.clipboardView) {
+        this.clipboardView.publish("clipboard", "ping", {
+          deviceId: this.clipboardView.deviceId,
+          timestamp: Date.now(),
+        });
+      }
+    } catch (error) {
+      console.warn("Session ping failed:", error);
+      this.handleConnectionLoss();
+    }
+  }
+
+  // Handle tab becoming hidden
+  handleTabHidden() {
+    if (this.session && this.isConnected) {
+      // Reduce ping frequency when hidden but keep connection
+      clearInterval(this.keepAliveInterval);
+      this.keepAliveInterval = setInterval(() => {
+        this.pingSession();
+      }, 60000); // Ping every minute when hidden
+
+      // Save current state
+      this.saveSessionState();
+    }
+  }
+
+  // Handle tab becoming visible
+  async handleTabVisible() {
+    // Restore normal ping frequency
+    clearInterval(this.keepAliveInterval);
+    this.keepAliveInterval = setInterval(() => {
+      this.pingSession();
+    }, 30000);
+
+    // Check connection and reconnect if needed
+    await this.checkAndReconnect();
+  }
+
+  // Save session state to localStorage
+  saveSessionState() {
+    if (this.session && this.currentUser && this.apiKey) {
+      const sessionState = {
+        user: this.currentUser,
+        apiKey: this.apiKey,
+        appId: this.appId,
+        timestamp: Date.now(),
+        isConnected: this.isConnected,
+      };
+      localStorage.setItem("klipy-session-state", JSON.stringify(sessionState));
+    }
+  }
+
+  // Restore session state from localStorage
+  restoreSessionState() {
+    try {
+      const savedState = localStorage.getItem("klipy-session-state");
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        // Only restore if saved within last 30 minutes
+        if (Date.now() - state.timestamp < 30 * 60 * 1000) {
+          this.currentUser = state.user;
+          this.apiKey = state.apiKey;
+          this.appId = state.appId;
+          return true;
         }
-      });
+      }
+    } catch (error) {
+      console.warn("Failed to restore session state:", error);
+    }
+    return false;
+  }
+
+  // Check connection and reconnect if needed
+  async checkAndReconnect() {
+    if (!this.session || !this.isConnected) {
+      console.log("Attempting to reconnect...");
+      await this.attemptReconnection();
+      return;
+    }
+
+    // Test if session is still active
+    try {
+      if (this.clipboardView) {
+        // Try to communicate with the session
+        this.clipboardView.publish("clipboard", "connection-test", {
+          deviceId: this.clipboardView.deviceId,
+          timestamp: Date.now(),
+        });
+      }
+    } catch (error) {
+      console.log("Connection test failed, reconnecting...", error);
+      await this.attemptReconnection();
     }
   }
 
-  // Open sidebar
-  openSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-      sidebar.classList.add('open');
+  // Attempt to reconnect to session
+  async attemptReconnection() {
+    if (this.reconnecting) return; // Prevent multiple simultaneous reconnection attempts
+    this.reconnecting = true;
+
+    try {
+      console.log("Attempting session reconnection...");
+
+      // Update UI to show reconnecting status
+      if (this.syncStatus) {
+        this.syncStatus.textContent = "Reconnecting...";
+        this.syncStatus.classList.remove("active");
+      }
+
+      // Clean up old session
+      if (this.session) {
+        try {
+          await this.session.leave();
+        } catch (error) {
+          console.warn("Error leaving old session:", error);
+        }
+      }
+
+      // Restore session state if available
+      if (!this.currentUser || !this.apiKey) {
+        if (!this.restoreSessionState()) {
+          console.log("No valid session state to restore");
+          this.redirectToLogin();
+          return;
+        }
+      }
+
+      // Reinitialize connection
+      await this.initializeMultisynq();
+
+      if (this.isConnected) {
+        console.log("Successfully reconnected to session");
+
+        // Update UI
+        if (this.syncStatus) {
+          this.syncStatus.textContent = "Reconnected - syncing active";
+          this.syncStatus.classList.add("active");
+        }
+      }
+    } catch (error) {
+      console.error("Reconnection failed:", error);
+
+      // Update UI to show failure
+      if (this.syncStatus) {
+        this.syncStatus.textContent = "Connection lost - click to reconnect";
+        this.syncStatus.classList.remove("active");
+      }
+
+      // Schedule retry
+      setTimeout(() => {
+        this.attemptReconnection();
+      }, 10000); // Retry in 10 seconds
+    } finally {
+      this.reconnecting = false;
     }
   }
 
-  // Close sidebar
-  closeSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-      sidebar.classList.remove('open');
+  // Monitor connection health
+  monitorConnection() {
+    if (!this.session || !this.isConnected) return;
+
+    // Check if we're still properly connected
+    try {
+      // Check if session object is still valid
+      if (!this.session.model || !this.session.view) {
+        console.warn("Session objects missing, connection may be lost");
+        this.handleConnectionLoss();
+        return;
+      }
+
+      // Update last seen timestamp
+      this.lastConnectionCheck = Date.now();
+    } catch (error) {
+      console.warn("Connection monitor error:", error);
+      this.handleConnectionLoss();
     }
   }
 
-  // Toggle sidebar (kept for backward compatibility)
-  toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (!sidebar) return;
-    if (sidebar.classList.contains('open')) {
-      sidebar.classList.remove('open');
-    } else {
-      sidebar.classList.add('open');
+  // Handle connection loss
+  handleConnectionLoss() {
+    if (this.isConnected) {
+      console.log("Connection loss detected");
+      this.isConnected = false;
+
+      // Update UI
+      if (this.syncStatus) {
+        this.syncStatus.textContent = "Connection lost - reconnecting...";
+        this.syncStatus.classList.remove("active");
+      }
+
+      // Attempt reconnection
+      this.attemptReconnection();
+    }
+  }
+
+  // Handle network offline
+  handleNetworkOffline() {
+    this.isConnected = false;
+    if (this.syncStatus) {
+      this.syncStatus.textContent = "No internet connection";
+      this.syncStatus.classList.remove("active");
+    }
+  }
+
+  // Redirect to login if session cannot be restored
+  redirectToLogin() {
+    console.log("Redirecting to login due to session loss");
+    this.isConnected = false;
+
+    // Clear stored session
+    localStorage.removeItem("klipy-session-state");
+    localStorage.removeItem("klipy-token");
+
+    // Show login screen
+    if (this.authContainer) {
+      this.authContainer.style.display = "flex";
+    }
+    if (this.dashboardContainer) {
+      this.dashboardContainer.style.display = "none";
+    }
+  }
+
+  // Cleanup intervals and listeners
+  cleanup() {
+    if (this.keepAliveInterval) {
+      clearInterval(this.keepAliveInterval);
+    }
+    if (this.connectionCheckInterval) {
+      clearInterval(this.connectionCheckInterval);
     }
   }
 }

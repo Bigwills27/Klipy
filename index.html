@@ -74,83 +74,13 @@
 
     <!-- Main Dashboard -->
     <div id="dashboard-container" class="app-container" style="display: none;">
-        <!-- Sidebar -->
-        <div id="sidebar" class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <i class="fas fa-clipboard-list"></i>
-                    <span>Klipy</span>
-                </div>
-                <button id="close-sidebar-btn" class="close-btn">×</button>
-            </div>
-
-            <div class="user-profile">
-                <div class="avatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div class="user-info">
-                    <div class="user-name" id="user-name">Loading...</div>
-                    <div class="user-role">Premium User</div>
-                </div>
-                <button class="menu-toggle" id="logout-btn" title="Logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </div>
-
-            <nav class="sidebar-nav">
-                <div class="nav-section">
-                    <div class="nav-title">Main</div>
-                    <ul class="nav-list">
-                        <li class="nav-item active">
-                            <i class="fas fa-home"></i>
-                            <span>Dashboard</span>
-                        </li>
-                        <li class="nav-item">
-                            <i class="fas fa-clipboard"></i>
-                            <span>Clipboard History</span>
-                        </li>
-                        <li class="nav-item">
-                            <i class="fas fa-sync-alt"></i>
-                            <span>Sync Status</span>
-                            <span class="sync-indicator" id="sync-indicator"></span>
-                        </li>
-                        <li class="nav-item">
-                            <i class="fas fa-devices"></i>
-                            <span>Connected Devices</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <div class="nav-section">
-                    <div class="nav-title">Controls</div>
-                    <ul class="nav-list">
-                        <li class="nav-item">
-                            <button id="sync-toggle" class="sync-toggle-btn" data-active="false">
-                                <i class="fas fa-power-off"></i>
-                                <span>Activate Sync</span>
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button id="auto-clipboard-toggle" class="auto-clipboard-toggle" data-active="false">
-                                <i class="fas fa-magic"></i>
-                                <span>Auto Clipboard</span>
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
-        </div>
-
         <!-- Main Content -->
         <main class="main-content">
             <header class="main-header">
                 <div class="header-left">
-                    <button class="menu-btn">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <div class="breadcrumb">
+                    <div class="logo">
                         <i class="fas fa-clipboard-list"></i>
-                        <span>Clipboard Dashboard</span>
+                        <span>Klipy</span>
                     </div>
                 </div>
                 <div class="header-center">
@@ -158,20 +88,23 @@
                         <div id="sync-status" class="sync-status">Ready to sync</div>
                         <div id="device-info" class="device-info">Device: Unknown</div>
                     </div>
-                </div>
-                <div class="header-right">
-                    <button class="header-btn" id="test-clip-btn">
-                        <i class="fas fa-plus"></i>
-                        Test Clip
-                    </button>
-                    <button class="header-btn secondary" id="clear-clips-btn">
-                        <i class="fas fa-trash"></i>
-                        Clear All
-                    </button>
+                    <div class="control-buttons">
+                        <button id="sync-toggle" class="control-btn" data-active="false">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Activate Sync</span>
+                        </button>
+                        <button id="auto-clipboard-toggle" class="control-btn" data-active="false">
+                            <i class="fas fa-clipboard-check"></i>
+                            <span>Auto Clipboard</span>
+                        </button>
+                    </div>
                 </div>
             </header>
 
             <div class="content-area">
+                <div class="breadcrumb">
+                    <h1>Dashboard</h1>
+                </div>
                 <div class="stats-row">
                     <div class="stat-card">
                         <i class="fas fa-clipboard-list"></i>
@@ -194,6 +127,17 @@
                             <div class="stat-label">Sync Status</div>
                         </div>
                     </div>
+                </div>
+
+                <div class="action-controls">
+                    <button class="header-btn" id="test-clip-btn">
+                        <i class="fas fa-plus"></i>
+                        Test Clip
+                    </button>
+                    <button class="header-btn secondary" id="clear-clips-btn">
+                        <i class="fas fa-trash"></i>
+                        Clear All
+                    </button>
                 </div>
 
                 <div class="content-section">
