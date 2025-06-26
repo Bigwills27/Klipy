@@ -74,6 +74,126 @@
 
     <!-- Main Dashboard -->
     <div id="dashboard-container" class="app-container" style="display: none;">
+        <!-- Sidebar Toggle Button -->
+        <button data-drawer-target="default-sidebar" data-drawer-toggle="default-sidebar"
+            aria-controls="default-sidebar" type="button" class="sidebar-toggle-btn">
+            <svg viewBox="0 0 48 48" id="b" xmlns="http://www.w3.org/2000/svg" fill="#000000" stroke="#000000"
+                stroke-width="3.024">
+                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                <g id="SVGRepo_iconCarrier">
+                    <defs>
+                        <style>
+                            .c {
+                                fill: none;
+                                stroke: #8b5cf6;
+                                stroke-linecap: round;
+                                stroke-linejoin: round;
+                            }
+                        </style>
+                    </defs>
+                    <path class="c"
+                        d="m40.5,5.5H7.5c-1.1,0-2,.9-2,2v33c0,1.1.9,2,2,2h33c1.1,0,2-.9,2-2V7.5c0-1.1-.9-2-2-2Z"></path>
+                    <line class="c" x1="32.9" y1="13.9" x2="32.9" y2="34.1"></line>
+                    <polyline class="c" points="14 14.9 23.2 24 14 33.1"></polyline>
+                </g>
+            </svg>
+        </button>
+
+        <!-- Sidebar -->
+        <aside id="default-sidebar" class="sidebar">
+            <div class="sidebar-content">
+                <!-- Sidebar Logo -->
+                <div class="sidebar-header">
+                    <div class="logo">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Klipy</span>
+                    </div>
+                </div>
+
+                <!-- User Profile Section -->
+                <div class="user-profile-sidebar">
+                    <div class="avatar">
+                        <span id="user-avatar">U</span>
+                    </div>
+                    <div class="user-info-sidebar">
+                        <div class="user-name" id="user-name-sidebar">User</div>
+                        <div class="user-role">Premium User</div>
+                    </div>
+                </div>
+
+                <!-- Sync Status in Sidebar -->
+                <div class="sidebar-sync-status">
+                    <div class="sync-status-display">
+                        <div id="sync-status-sidebar" class="sync-status">Ready to sync</div>
+                        <div id="device-info-sidebar" class="device-info">Device: Unknown</div>
+                    </div>
+                    <div class="control-buttons-sidebar">
+                        <button id="sync-toggle-sidebar" class="control-btn-sidebar" data-active="false">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Activate Sync</span>
+                        </button>
+                        <button id="auto-clipboard-toggle-sidebar" class="control-btn-sidebar" data-active="false">
+                            <i class="fas fa-clipboard-check"></i>
+                            <span>Auto Clipboard</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <ul class="sidebar-nav">
+                    <li>
+                        <a href="#" class="nav-link active">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-clipboard-list"></i>
+                            <span>Clipboard History</span>
+                            <span class="nav-badge" id="entries-count-sidebar">0</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-devices"></i>
+                            <span>Connected Devices</span>
+                            <span class="nav-badge">1</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Help & Support</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Action Buttons in Sidebar -->
+                <div class="sidebar-actions">
+                    <button class="sidebar-btn" id="test-clip-btn-sidebar">
+                        <i class="fas fa-plus"></i>
+                        Test Clip
+                    </button>
+                    <button class="sidebar-btn secondary" id="clear-clips-btn-sidebar">
+                        <i class="fas fa-trash"></i>
+                        Clear All
+                    </button>
+                    <button class="sidebar-btn logout" id="logout-btn-sidebar">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </aside>
+
         <!-- Main Content -->
         <main class="main-content">
             <header class="main-header">
@@ -83,28 +203,14 @@
                         <span>Klipy</span>
                     </div>
                 </div>
-                <div class="header-center">
-                    <div class="sync-status-display">
-                        <div id="sync-status" class="sync-status">Ready to sync</div>
-                        <div id="device-info" class="device-info">Device: Unknown</div>
-                    </div>
-                    <div class="control-buttons">
-                        <button id="sync-toggle" class="control-btn" data-active="false">
-                            <i class="fas fa-sync-alt"></i>
-                            <span>Activate Sync</span>
-                        </button>
-                        <button id="auto-clipboard-toggle" class="control-btn" data-active="false">
-                            <i class="fas fa-clipboard-check"></i>
-                            <span>Auto Clipboard</span>
-                        </button>
+                <div class="header-right">
+                    <div class="breadcrumb">
+                        <h1>Dashboard</h1>
                     </div>
                 </div>
             </header>
 
             <div class="content-area">
-                <div class="breadcrumb">
-                    <h1>Dashboard</h1>
-                </div>
                 <div class="stats-row">
                     <div class="stat-card">
                         <i class="fas fa-clipboard-list"></i>
@@ -127,17 +233,6 @@
                             <div class="stat-label">Sync Status</div>
                         </div>
                     </div>
-                </div>
-
-                <div class="action-controls">
-                    <button class="header-btn" id="test-clip-btn">
-                        <i class="fas fa-plus"></i>
-                        Test Clip
-                    </button>
-                    <button class="header-btn secondary" id="clear-clips-btn">
-                        <i class="fas fa-trash"></i>
-                        Clear All
-                    </button>
                 </div>
 
                 <div class="content-section">
@@ -174,6 +269,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="config.js"></script>
     <script src="database.js"></script>
     <script src="clipboard-manager.js"></script>
     <script src="clipboard-model.js"></script>

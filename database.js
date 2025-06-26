@@ -211,6 +211,31 @@ class KlipyDatabase {
       throw error;
     }
   }
+
+  // Token Validation
+  async validateToken(token) {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/users/validate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          token: token
+        }),
+      });
+
+      if (!response.ok) {
+        return { success: false, error: `HTTP error! status: ${response.status}` };
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error validating token:", error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 // Export for global access
