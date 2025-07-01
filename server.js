@@ -14,9 +14,7 @@ const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
 // MongoDB connection
-const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://yudtkme:yudtkme20@tabmc.zhquyvw.mongodb.net/klipy";
+const MONGODB_URI = process.env.MONGODB_URI;
 const JWT_SECRET =
   process.env.JWT_SECRET || "klipy-secret-key-change-in-production";
 
