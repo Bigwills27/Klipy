@@ -13,10 +13,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
+// ||
+//   "mongodb+srv://yudtkme:yudtkme20@tabmc.zhquyvw.mongodb.net/klipy";
+
 // MongoDB connection
-const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://yudtkme:yudtkme20@tabmc.zhquyvw.mongodb.net/klipy";
+const MONGODB_URI = process.env.MONGODB_URI;
 const JWT_SECRET =
   process.env.JWT_SECRET || "klipy-secret-key-change-in-production";
 
@@ -310,19 +311,24 @@ async function handleUserAuthentication(req, res, data) {
 // Token validation endpoint
 app.post("/api/users/validate", async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '') || req.body.token;
-    
+    const token =
+      req.headers.authorization?.replace("Bearer ", "") || req.body.token;
+
     if (!token) {
-      return res.status(401).json({ success: false, error: "No token provided" });
+      return res
+        .status(401)
+        .json({ success: false, error: "No token provided" });
     }
 
     // Verify JWT token
     const decoded = jwt.verify(token, JWT_SECRET);
-    
+
     // Check if user still exists
-    const { ObjectId } = require('mongodb');
-    const user = await db.collection("Users").findOne({ _id: new ObjectId(decoded.userId) });
-    
+    const { ObjectId } = require("mongodb");
+    const user = await db
+      .collection("Users")
+      .findOne({ _id: new ObjectId(decoded.userId) });
+
     if (!user) {
       return res.status(401).json({ success: false, error: "User not found" });
     }

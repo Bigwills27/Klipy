@@ -23,7 +23,7 @@
             </div>
 
             <!-- Login Form -->
-            <form id="login-form" class="auth-form">
+            <form id="login-form" class="auth-form active">
                 <h2>Welcome Back</h2>
                 <div class="form-group">
                     <label for="login-email">Email</label>
@@ -45,7 +45,7 @@
             </form>
 
             <!-- Signup Form -->
-            <form id="signup-form" class="auth-form" style="display: none;">
+            <form id="signup-form" class="auth-form">
                 <h2>Create Account</h2>
                 <div class="form-group">
                     <label for="signup-name">Full Name</label>
@@ -239,7 +239,7 @@
                     <div class="section-header">
                         <h2>Recent Clipboard Items</h2>
                         <div class="section-actions">
-                            <button class="icon-btn" title="Refresh">
+                            <button id="refresh-clipboard-btn" class="icon-btn" title="Refresh">
                                 <i class="fas fa-refresh"></i>
                             </button>
                         </div>
@@ -272,7 +272,7 @@
     <script src="config.js"></script>
     <script src="database.js"></script>
     <script src="clipboard-manager.js"></script>
-    <script src="clipboard-model.js"></script>
+    <script src="clipboard-model-fixed.js"></script>
     <script src="clipboard-view.js"></script>
     <script src="app.js"></script>
 </body>

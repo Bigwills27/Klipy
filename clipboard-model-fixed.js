@@ -7,6 +7,13 @@ class ClipboardModel extends Multisynq.Model {
     this.connectedDevices = new Map(); // Map<deviceId, deviceInfo>
     this.deviceViewMap = new Map(); // Map<viewId, deviceId>
 
+    // Performance monitoring
+    this.performanceMetrics = {
+      operationCount: 0,
+      lastPersistTime: 0,
+      averagePersistDuration: 0,
+    };
+
     // Subscribe to clipboard events from views
     this.subscribe("clipboard", "add-clip", this.handleAddClip);
     this.subscribe("clipboard", "remove-clip", this.handleRemoveClip);
@@ -18,11 +25,77 @@ class ClipboardModel extends Multisynq.Model {
       this.handleUnregisterDevice
     );
 
-    // Subscribe to system events
-    this.subscribe("", "view-join", this.handleDeviceJoin);
-    this.subscribe("", "view-exit", this.handleDeviceExit);
+    // Subscribe to system events using proper session scope
+    this.subscribe(this.sessionId, "view-join", this.handleDeviceJoin);
+    this.subscribe(this.sessionId, "view-exit", this.handleDeviceExit);
+
+    // Restore persisted data if available
+    try {
+      const persistedData = this.getPersistedData();
+      if (persistedData) {
+        this.clips = persistedData.clips || [];
+        this.lastActivity = persistedData.lastActivity || this.now();
+        this.connectedDevices = new Map(
+          persistedData.connectedDevices || []
+        );
+
+        console.log(
+          "Persisted clipboard data loaded:",
+          this.clips.length,
+          "clips"
+        );
+        
+        // Immediately notify views about restored clips to update UI
+        if (this.clips.length > 0) {
+          setTimeout(() => {
+            this.publish("clipboard", "clips-updated", {
+              clips: this.clips,
+              count: this.clips.length,
+            });
+            console.log("Published restored clips to views");
+          }, 100); // Small delay to ensure views are ready
+        }
+      }
+    } catch (error) {
+      console.error("Failed to restore persisted data:", error);
+      // Initialize with empty state if restoration fails
+      this.clips = [];
+      this.lastActivity = this.now();
+      this.connectedDevices = new Map();
+    }
 
     console.log("ClipboardModel initialized at", this.now());
+  }
+
+  // Persist important clipboard data across sessions
+  persistClipboardData() {
+    try {
+      // Keep the last 20 clips and all device registrations
+      const persistentData = {
+        clips: this.clips.slice(0, 20), // Keep recent clips
+        connectedDevices: Array.from(this.connectedDevices.entries()),
+        lastActivity: this.lastActivity,
+        version: 1, // For future migration compatibility
+      };
+
+      const startTime = performance.now();
+      this.persistSession(persistentData);
+      const endTime = performance.now();
+
+      // Update performance metrics
+      this.performanceMetrics.operationCount++;
+      this.performanceMetrics.lastPersistTime = endTime - startTime;
+      this.performanceMetrics.averagePersistDuration =
+        (this.performanceMetrics.averagePersistDuration *
+          (this.performanceMetrics.operationCount - 1) +
+          this.performanceMetrics.lastPersistTime) /
+        this.performanceMetrics.operationCount;
+
+      console.log("Clipboard data persisted:", persistentData.clips.length, "clips");
+    } catch (error) {
+      console.error("Failed to persist clipboard data:", error);
+      // Continue operation even if persistence fails
+    }
   }
 
   // Handle adding a new clipboard entry
@@ -64,6 +137,9 @@ class ClipboardModel extends Multisynq.Model {
         count: this.clips.length,
       });
 
+      // Persist the updated data
+      this.persistClipboardData();
+
       console.log("Clip added:", clip.text.substring(0, 50) + "...");
     }
   }
@@ -82,6 +158,9 @@ class ClipboardModel extends Multisynq.Model {
         count: this.clips.length,
       });
 
+      // Persist the updated data
+      this.persistClipboardData();
+
       console.log("Clip removed:", removedClip.id);
     }
   }
@@ -98,6 +177,9 @@ class ClipboardModel extends Multisynq.Model {
       clips: this.clips,
       count: 0,
     });
+
+    // Persist the updated data
+    this.persistClipboardData();
 
     console.log("All clips cleared, count was:", count);
   }

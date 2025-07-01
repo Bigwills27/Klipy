@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   - type: web
     name: klipy-clipboard-sync
@@ -8,10 +10,46 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: MONGODB_URI
-        fromDatabase:
-          name: klipy-mongodb
-          property: connectionString
-      - key: JWT_SECRET
-        generateValue: true
-    autoDeploy: false
+      - key: PORT
+        sync: false
+    domains:
+      - klipy-clipboard-sync.onrender.com
+
+    # Health check
+    healthCheckPath: /
+
+    # Auto-deploy on git push
+    autoDeploy: true
+
+    # Environment variables that need to be set in Render dashboard:
+    # (Add these manually in the Render dashboard)
+    # - Any additional environment variables your app needs
+
+    # Build settings
+    buildFilter:
+      paths:
+        - "**"
+      ignoredPaths:
+        - "test-*"
+        - "*.md"
+        - ".gitignore"
+
+    # Resource limits (free tier)
+    disk: 1GB
+
+    # Logs retention
+    logRetention: 7 # days
+
+# Optional: If you need a database, uncomment and configure
+# databases:
+#   - name: klipy-db
+#     databaseName: klipy
+#     user: klipy_user
+#     plan: free
+
+# Optional: If you need Redis for caching, uncomment
+# services:
+#   - type: redis
+#     name: klipy-redis
+#     plan: free
+#     maxmemoryPolicy: allkeys-lru

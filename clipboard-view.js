@@ -3,7 +3,10 @@ class ClipboardView extends Multisynq.View {
   constructor(model) {
     super(model);
 
-    this.clipboardManager = new ClipboardManager();
+    // Use shared clipboard manager from global app if available, otherwise create new one
+    this.clipboardManager = (window.app && window.app.clipboardManager) ? window.app.clipboardManager : new ClipboardManager();
+    this.isUsingSharedManager = !!(window.app && window.app.clipboardManager);
+    
     this.database = new KlipyDatabase();
     this.isMonitoring = false;
     this.isDeviceActive = false; // Track if this device is active for sync
@@ -23,28 +26,42 @@ class ClipboardView extends Multisynq.View {
     this.initializeElements();
     this.bindEvents();
     this.setupModelListeners();
-    this.setupClipboardMonitoring();
+    
+    // Only setup clipboard monitoring if we created our own manager
+    if (!this.isUsingSharedManager) {
+      this.setupClipboardMonitoring();
+    }
 
     // Register this device with the model (will be updated with user info later)
     this.registerDevice();
 
     // Delay initial UI update to ensure model is ready
     setTimeout(() => {
+      this.loadExistingModelData();
       this.updateClipboardDisplay();
+      // Try again after a longer delay if no data was loaded
+      if (this.model && this.model.getAllClips().length === 0) {
+        setTimeout(() => {
+          console.log("Retrying data load after extended delay...");
+          this.loadExistingModelData();
+          this.updateClipboardDisplay();
+        }, 2000);
+      }
     }, 100);
 
     console.log(
       "ClipboardView initialized for viewId:",
       this.viewId,
       "device:",
-      this.deviceName
+      this.deviceName,
+      "using shared manager:",
+      this.isUsingSharedManager
     );
   }
 
   // Initialize DOM elements
   initializeElements() {
     this.syncToggleBtn = document.getElementById("sync-toggle");
-    this.autoClipboardToggle = document.getElementById("auto-clipboard-toggle");
     this.syncStatus = document.getElementById("sync-status");
     this.deviceInfo = document.getElementById("device-info");
     this.entriesCount = document.getElementById("entries-count");
@@ -73,11 +90,6 @@ class ClipboardView extends Multisynq.View {
     // Sync toggle
     this.syncToggleBtn?.addEventListener("click", () =>
       this.toggleMonitoring()
-    );
-
-    // Auto-clipboard toggle
-    this.autoClipboardToggle?.addEventListener("click", () =>
-      this.toggleAutoClipboard()
     );
 
     // Dev controls
@@ -139,7 +151,7 @@ class ClipboardView extends Multisynq.View {
 
   // Setup local clipboard monitoring
   setupClipboardMonitoring() {
-    this.clipboardManager.on("clip-added", (clip) => {
+    this.clipboardManager.on("clipAdded", (clip) => {
       // Only send to model if device is active and user is logged in
       if (this.isDeviceActive && this.userId) {
         // Send to synchronized model
@@ -253,6 +265,53 @@ class ClipboardView extends Multisynq.View {
     });
   }
 
+  // Load existing clips from the model when connecting
+  loadExistingModelData() {
+    if (!this.model || typeof this.model.getAllClips !== "function") {
+      console.log("Model not ready yet, retrying in 500ms...");
+      setTimeout(() => this.loadExistingModelData(), 500);
+      return;
+    }
+
+    const existingClips = this.model.getAllClips();
+    if (existingClips.length > 0) {
+      console.log("Loading", existingClips.length, "existing clips from model");
+      
+      // If we're using the shared clipboard manager, don't duplicate in it
+      // The display will show model data when connected
+      if (!this.isUsingSharedManager && this.clipboardManager) {
+        // Add model clips to local clipboard manager for consistent access
+        existingClips.reverse().forEach(clip => {
+          // Convert model clip format to clipboard manager format
+          const localClip = {
+            id: clip.id,
+            text: clip.text,
+            timestamp: new Date(clip.timestamp),
+            device: clip.deviceId === this.deviceId ? "This Device" : "Remote Device"
+          };
+          
+          // Add without triggering events to avoid sync loops
+          if (!this.clipboardManager.hasRecentClip(clip.text)) {
+            this.clipboardManager.clips.unshift(localClip);
+          }
+        });
+        
+        // Limit clips
+        if (this.clipboardManager.clips.length > this.clipboardManager.maxClips) {
+          this.clipboardManager.clips = this.clipboardManager.clips.slice(0, this.clipboardManager.maxClips);
+        }
+      }
+      
+      // Force update the display to show restored clips
+      this.updateClipboardDisplay();
+      console.log("Existing model data loaded and display updated");
+    } else {
+      console.log("No existing clips in model");
+      // Still update display in case of empty state
+      this.updateClipboardDisplay();
+    }
+  }
+
   // Handle clip added event from model
   handleClipAdded(clip) {
     console.log(
@@ -284,6 +343,7 @@ class ClipboardView extends Multisynq.View {
 
   // Handle clips updated event from model
   handleClipsUpdated(data) {
+    console.log("Model clips updated:", data.count, "clips available");
     this.updateClipboardDisplay();
   }
 
@@ -381,20 +441,36 @@ class ClipboardView extends Multisynq.View {
 
   // Update the clipboard entries display
   updateClipboardDisplay() {
-    // Check if model is ready
-    if (!this.model || typeof this.model.getAllClips !== "function") {
-      console.warn("Model not ready yet, skipping UI update");
-      return;
+    let clips, count;
+    
+    // When connected to Multisynq, always use model data for display
+    // The shared clipboard manager is only used for monitoring local clipboard changes
+    if (this.model && typeof this.model.getAllClips === "function") {
+      clips = this.model.getAllClips();
+      count = clips.length;
+      console.log("Using model for display (synced data), clips:", count);
+    } else if (this.isUsingSharedManager && this.clipboardManager) {
+      // Fallback to local clipboard manager only when model is not available
+      clips = this.clipboardManager.getClips();
+      count = clips.length;
+      console.log("Using shared clipboard manager for display (local only), clips:", count);
+    } else {
+      console.warn("No data source available for display");
+      clips = [];
+      count = 0;
     }
-
-    const clips = this.model.getAllClips();
-    const count = clips.length;
 
     // Update count
     if (this.entriesCount) {
       this.entriesCount.textContent = `${count} ${
         count === 1 ? "entry" : "entries"
       }`;
+    }
+    
+    // Update sidebar count too
+    const sidebarCount = document.getElementById("entries-count-sidebar");
+    if (sidebarCount) {
+      sidebarCount.textContent = count.toString();
     }
 
     // Clear current display
@@ -420,12 +496,26 @@ class ClipboardView extends Multisynq.View {
   // Create HTML element for a clip
   createClipElement(clip) {
     const timestamp = this.formatTimestamp(clip.timestamp);
-    const isFromThisDevice =
-      clip.userId === this.userId && clip.deviceId === this.deviceId;
-    const deviceIndicator = isFromThisDevice ? "📱" : "🔄";
-    const deviceLabel = isFromThisDevice
-      ? "This device"
-      : `From ${clip.userId}`;
+    
+    // Handle different clip formats - prioritize model format when available
+    let deviceIndicator, deviceLabel, userId, deviceId;
+    
+    // When connected to Multisynq, use model format which includes device/user info
+    if (this.model && typeof this.model.getAllClips === "function" && clip.userId !== undefined) {
+      // Model format - this is synced data
+      const isFromThisDevice = clip.userId === this.userId && clip.deviceId === this.deviceId;
+      deviceIndicator = isFromThisDevice ? "📱" : "🔄";
+      deviceLabel = isFromThisDevice ? "This device" : `Device ${clip.deviceId?.substring(0, 8) || "unknown"}`;
+      userId = clip.userId;
+      deviceId = clip.deviceId;
+    } else {
+      // Local clipboard manager format
+      deviceIndicator = "📋";
+      deviceLabel = clip.device || "Local";
+      userId = this.userId || "local";
+      deviceId = this.deviceId;
+    }
+    
     const isLong = clip.text.length > 200;
     const displayText = isLong
       ? clip.text.substring(0, 200) + "..."
@@ -436,14 +526,10 @@ class ClipboardView extends Multisynq.View {
                 <div class="clipboard-item-header">
                     <span class="clipboard-item-time">${deviceIndicator} ${timestamp} • ${deviceLabel}</span>
                     <div class="clipboard-item-actions">
-                        <button class="clipboard-item-btn" onclick="clipboardView.copyClip('${
-                          clip.id
-                        }')" title="Copy to clipboard">
+                        <button class="clipboard-item-btn" onclick="clipboardView.copyClip('${clip.id}')" title="Copy to clipboard">
                             <i class="fas fa-copy"></i>
                         </button>
-                        <button class="clipboard-item-btn" onclick="clipboardView.deleteClip('${
-                          clip.id
-                        }')" title="Delete">
+                        <button class="clipboard-item-btn" onclick="clipboardView.deleteClip('${clip.id}')" title="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -464,30 +550,65 @@ class ClipboardView extends Multisynq.View {
 
   // Copy clip to clipboard
   async copyClip(clipId) {
-    const clips = this.model.getAllClips();
-    const clip = clips.find((c) => c.id == clipId);
+    let clips, clip;
+    
+    // When connected to Multisynq, prioritize model data
+    if (this.model && typeof this.model.getAllClips === "function") {
+      clips = this.model.getAllClips();
+      clip = clips.find((c) => c.id == clipId);
+    } else if (this.isUsingSharedManager && this.clipboardManager) {
+      clips = this.clipboardManager.getClips();
+      clip = clips.find((c) => c.id == clipId);
+    }
 
     if (clip) {
       const success = await this.clipboardManager.copyToClipboard(clip.text);
       if (success) {
         console.log("Clip copied to clipboard");
+        this.showClipboardNotification("Copied to clipboard!", "success", 2000);
       } else {
         // Fallback: select text for manual copying
         this.selectText(clip.text);
       }
+    } else {
+      console.error("Clip not found for ID:", clipId);
     }
   }
 
   // Delete clip
   deleteClip(clipId) {
-    this.publish("clipboard", "remove-clip", { clipId: parseFloat(clipId) });
+    console.log("Deleting clip with ID:", clipId, "type:", typeof clipId);
+    
+    // When connected to Multisynq, always use model for deletions
+    if (this.model && typeof this.model.getAllClips === "function") {
+      // Remove via model - convert to number if needed
+      const numericId = typeof clipId === 'string' ? parseFloat(clipId) : clipId;
+      console.log("Publishing remove-clip event for ID:", numericId);
+      this.publish("clipboard", "remove-clip", { clipId: numericId });
+    } else if (this.isUsingSharedManager && this.clipboardManager) {
+      // Fallback to local clipboard manager only when model is not available
+      const numericId = typeof clipId === 'string' ? parseFloat(clipId) : clipId;
+      this.clipboardManager.removeClip(numericId);
+      console.log("Removed clip from shared clipboard manager");
+      // Update display
+      this.updateClipboardDisplay();
+    } else {
+      console.error("No data source available for deletion");
+    }
   }
 
   // Toggle expand for long text
   toggleExpand(element) {
     const entryElement = element.closest(".clipboard-item");
     const clipId = entryElement?.getAttribute("data-clip-id");
-    const clip = this.model.getAllClips().find((c) => c.id == clipId);
+    
+    let clip;
+    // When connected to Multisynq, prioritize model data
+    if (this.model && typeof this.model.getAllClips === "function") {
+      clip = this.model.getAllClips().find((c) => c.id == clipId);
+    } else if (this.isUsingSharedManager && this.clipboardManager) {
+      clip = this.clipboardManager.getClips().find((c) => c.id == clipId);
+    }
 
     if (clip && clip.text.length > 200) {
       if (element.classList.contains("expanded")) {
@@ -642,27 +763,13 @@ synchronized across devices`,
       clip.text.substring(0, 50) + "..."
     );
 
-    // Try auto-clipboard first
-    const writeResult = await this.clipboardManager.writeToClipboard(
-      clip.text,
-      {
-        requireApproval: true,
-        approved: false,
-      }
+    // For now, just show a notification about the new clip
+    // The clip is already added to the model and will show in the UI
+    this.showClipboardNotification(
+      `New clipboard from ${this.getDeviceName(clip.deviceId)}`,
+      "info",
+      3000
     );
-
-    if (writeResult.success) {
-      this.showClipboardNotification(
-        `Auto-pasted from ${this.getDeviceName(clip.deviceId)}`,
-        "success"
-      );
-    } else if (writeResult.reason === "approval_required") {
-      this.showClipboardApproval(clip);
-    } else if (writeResult.reason === "no_permission") {
-      this.showClipboardPending(clip);
-    } else {
-      this.showClipboardFallback(clip);
-    }
   }
 
   // Show approval dialog for clipboard write
@@ -907,83 +1014,6 @@ synchronized across devices`,
   }
 
   // Setup auto-clipboard toggle
-  setupAutoClipboardToggle() {
-    // Check if auto-clipboard toggle already exists
-    let autoToggle = document.getElementById("auto-clipboard-toggle");
-
-    if (!autoToggle) {
-      // Create auto-clipboard toggle
-      const controlsContainer =
-        document.querySelector(".controls") ||
-        document.querySelector(".dashboard-header");
-      if (controlsContainer) {
-        const toggleContainer = document.createElement("div");
-        toggleContainer.className = "auto-clipboard-container";
-        toggleContainer.innerHTML = `
-                    <label class="auto-clipboard-label">
-                        <input type="checkbox" id="auto-clipboard-toggle" class="auto-clipboard-checkbox">
-                        <span class="auto-clipboard-text">Auto-paste from other devices</span>
-                    </label>
-                `;
-        controlsContainer.appendChild(toggleContainer);
-        autoToggle = document.getElementById("auto-clipboard-toggle");
-      }
-    }
-
-    if (autoToggle) {
-      autoToggle.addEventListener("change", async (e) => {
-        if (e.target.checked) {
-          const enabled = await this.clipboardManager.enableAutoClipboard();
-          if (!enabled) {
-            e.target.checked = false;
-            this.showClipboardNotification(
-              "Auto-clipboard permission denied",
-              "error"
-            );
-          } else {
-            this.showClipboardNotification("Auto-clipboard enabled", "success");
-          }
-        } else {
-          this.clipboardManager.disableAutoClipboard();
-          this.showClipboardNotification("Auto-clipboard disabled", "info");
-        }
-      });
-    }
-
-    // Listen for clipboard manager events
-    this.clipboardManager.on("auto-clipboard-enabled", () => {
-      const toggle = document.getElementById("auto-clipboard-toggle");
-      if (toggle) toggle.checked = true;
-    });
-
-    this.clipboardManager.on("auto-clipboard-disabled", () => {
-      const toggle = document.getElementById("auto-clipboard-toggle");
-      if (toggle) toggle.checked = false;
-    });
-  }
-
-  // Toggle auto clipboard functionality
-  toggleAutoClipboard() {
-    if (this.clipboardManager.autoClipboardEnabled) {
-      this.clipboardManager.disableAutoClipboard();
-      this.autoClipboardToggle?.setAttribute("data-active", "false");
-      if (this.autoClipboardToggle) {
-        this.autoClipboardToggle.innerHTML =
-          '<i class="fas fa-clipboard-check"></i><span>Auto Clipboard</span>';
-      }
-    } else {
-      this.clipboardManager.enableAutoClipboard().then((enabled) => {
-        if (enabled) {
-          this.autoClipboardToggle?.setAttribute("data-active", "true");
-          if (this.autoClipboardToggle) {
-            this.autoClipboardToggle.innerHTML =
-              '<i class="fas fa-clipboard-check"></i><span>Auto Clipboard On</span>';
-          }
-        }
-      });
-    }
-  }
-
   // Search clips functionality
   searchClips(query) {
     const clipboardItems = document.querySelectorAll(".clipboard-item");

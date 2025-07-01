@@ -1,6 +1,9 @@
 // Main Application Logic
 class KlipyApp {
   constructor() {
+    // Set global reference early for other components to access
+    window.app = this;
+    
     this.currentUser = null;
     this.session = null;
     this.clipboardView = null;
@@ -46,6 +49,7 @@ class KlipyApp {
     // Dev controls (both main and sidebar versions)
     this.testClipBtn = document.getElementById("test-clip-btn-sidebar");
     this.clearClipsBtn = document.getElementById("clear-clips-btn-sidebar");
+    this.refreshClipboardBtn = document.getElementById("refresh-clipboard-btn");
   }
 
   // Bind event listeners
@@ -84,6 +88,7 @@ class KlipyApp {
     // Dev controls
     this.testClipBtn?.addEventListener("click", () => this.addTestClip());
     this.clearClipsBtn?.addEventListener("click", () => this.clearAllClips());
+    this.refreshClipboardBtn?.addEventListener("click", () => this.refreshClipboard());
 
     // Search functionality
     const searchInput = document.querySelector(".search-input");
@@ -102,16 +107,46 @@ class KlipyApp {
     // Could show device management interface
   }
 
-  // Show signup form
+  // Show signup form with animation
   showSignupForm() {
-    this.loginForm?.classList.remove("active");
-    this.signupForm?.classList.add("active");
+    const currentForm = this.loginForm;
+    const targetForm = this.signupForm;
+    this.switchFormWithAnimation(currentForm, targetForm);
   }
 
-  // Show login form
+  // Show login form with animation
   showLoginForm() {
-    this.signupForm?.classList.remove("active");
-    this.loginForm?.classList.add("active");
+    const currentForm = this.signupForm;
+    const targetForm = this.loginForm;
+    this.switchFormWithAnimation(currentForm, targetForm);
+  }
+
+  // Handle animated form switching
+  switchFormWithAnimation(currentForm, targetForm) {
+    if (!currentForm || !targetForm || !currentForm.classList.contains('active')) {
+      // No animation needed, just switch directly
+      currentForm?.classList.remove('active');
+      targetForm?.classList.add('active');
+      return;
+    }
+
+    // Start exit animation for current form
+    currentForm.classList.add('animating-out');
+    
+    // After animation completes, switch forms
+    setTimeout(() => {
+      // Hide current form and show target form
+      currentForm.classList.remove('active', 'animating-out');
+      targetForm.classList.add('active');
+      
+      // Add entrance animation to target form
+      targetForm.classList.add('animating-in');
+      
+      // Remove entrance animation class after animation completes
+      setTimeout(() => {
+        targetForm.classList.remove('animating-in');
+      }, 500);
+    }, 250); // Half the animation duration for seamless transition
   }
 
   // Handle login with database authentication
@@ -284,12 +319,13 @@ class KlipyApp {
       this.clipboardManager = new ClipboardManager();
       
       // Listen for clipboard events
-      this.clipboardManager.on('clip-added', (clip) => {
+      this.clipboardManager.on('clipAdded', (clip) => {
+        this.handleNewClip(clip);
         this.updateClipboardView();
         console.log('New clip added:', clip.text.substring(0, 50) + '...');
       });
       
-      this.clipboardManager.on('clips-cleared', () => {
+      this.clipboardManager.on('clipsCleared', () => {
         this.updateClipboardView();
       });
     }
@@ -325,7 +361,6 @@ class KlipyApp {
     // Clean up clipboard manager
     if (this.clipboardManager) {
       this.clipboardManager.stopMonitoring();
-      this.clipboardManager.hideClipboardAccessButton();
       this.clipboardManager = null;
     }
 
@@ -364,10 +399,9 @@ class KlipyApp {
 
     try {
       // Create consistent session parameters based on user email
-      const sessionName = `klipy-${this.currentUser.email.replace(
-        /[^a-zA-Z0-9]/g,
-        "-"
-      )}`;
+      // Follow MultiSynq best practices: dot.separated.words like Android package IDs
+      const emailHash = this.hashEmail(this.currentUser.email);
+      const sessionName = `io.klipy.user.${emailHash}`;
       // Use a deterministic password based on user email so all devices can connect
       const password = this.generateUserPassword(this.currentUser.email);
 
@@ -435,6 +469,12 @@ class KlipyApp {
       // Add session error monitoring
       this.setupSessionErrorHandling();
 
+      // Check and add current clipboard content on session connect/reconnect to maintain history
+      if (this.clipboardManager) {
+        await this.clipboardManager.addCurrentClipboardIfNew();
+        this.updateClipboardView();
+      }
+
       console.log("Successfully connected to Multisynq session");
     } catch (error) {
       console.error("Failed to initialize Multisynq:", error);
@@ -461,6 +501,19 @@ class KlipyApp {
     }
     // Convert to a string and make it more secure
     return `klipy-${Math.abs(hash)}-${email.length}-clipboard`;
+  }
+
+  // Generate a consistent hash for email to create proper session IDs
+  hashEmail(email) {
+    // Simple deterministic hash that creates alphanumeric strings
+    let hash = 0;
+    for (let i = 0; i < email.length; i++) {
+      const char = email.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    // Convert to positive alphanumeric string
+    return Math.abs(hash).toString(36);
   }
 
   // Setup system event listeners for device management
@@ -541,7 +594,7 @@ class KlipyApp {
   }
 
   // Toggle sync functionality
-  toggleSync() {
+  async toggleSync() {
     if (!this.syncToggleBtn) return;
     
     const isActive = this.syncToggleBtn.getAttribute("data-active") === "true";
@@ -557,7 +610,12 @@ class KlipyApp {
       // Stop clipboard monitoring
       if (this.clipboardManager) {
         this.clipboardManager.stopMonitoring();
-        this.clipboardManager.hideClipboardAccessButton();
+      }
+      
+      // If we have a connected clipboard view, also stop its monitoring
+      if (this.clipboardView && this.isConnected) {
+        console.log("Stopping clipboard view monitoring");
+        this.clipboardView.stopMonitoring();
       }
       
       this.updateSyncStatus("Ready to sync", false);
@@ -572,12 +630,38 @@ class KlipyApp {
       
       // Start clipboard monitoring
       if (this.clipboardManager) {
-        this.clipboardManager.startMonitoring();
-        this.clipboardManager.showClipboardAccessButton();
+        try {          
+          // Check and add current clipboard content if it's not already in history
+          const wasAdded = await this.clipboardManager.addCurrentClipboardIfNew();
+          if (wasAdded) {
+            console.log("Current clipboard content added to history");
+          }
+          
+          // Start monitoring for new clipboard changes
+          this.clipboardManager.startMonitoring();
+          
+          // If we have a connected clipboard view, also start its monitoring
+          if (this.clipboardView && this.isConnected) {
+            console.log("Starting clipboard view monitoring for sync");
+            this.clipboardView.startMonitoring();
+          }
+          
+          this.updateSyncStatus("Sync active", true);
+          this.showNotification("Sync activated! Clipboard monitoring started.", "success", 3000);
+          
+          // Update clipboard view to show any newly added content
+          this.updateClipboardView();
+        } catch (error) {
+          this.updateSyncStatus("Permission required", false);
+          this.showNotification(error.message, "error", 5000);
+          // Revert button state
+          this.syncToggleBtn.setAttribute("data-active", "false");
+          this.syncToggleBtn.innerHTML = `
+            <i class="fas fa-sync-alt"></i>
+            <span>Activate Sync</span>
+          `;
+        }
       }
-      
-      this.updateSyncStatus("Sync active", true);
-      this.showNotification("Sync activated! You can now paste clipboard content.", "success", 3000);
     }
   }
 
@@ -626,17 +710,56 @@ class KlipyApp {
   // Clear all clips
   clearAllClips() {
     if (this.clipboardManager) {
-      const count = this.clipboardManager.clearAllClips();
+      const clips = this.clipboardManager.getClips();
+      const count = clips.length;
+      this.clipboardManager.clearClips();
       this.showNotification(`Cleared ${count} clipboard entries`, "info", 2000);
       this.updateClipboardView();
     }
   }
 
+  // Refresh clipboard - manually check current clipboard and update view
+  async refreshClipboard() {
+    if (!this.clipboardManager) {
+      this.showNotification("Clipboard manager not initialized", "warning", 3000);
+      return;
+    }
+
+    try {
+      this.showNotification("Checking clipboard...", "info", 1000);
+      
+      // Always use addCurrentClipboardIfNew for consistent behavior
+      const foundNewContent = await this.clipboardManager.addCurrentClipboardIfNew();
+      
+      // Update the clipboard view regardless
+      this.updateClipboardView();
+      
+      if (foundNewContent) {
+        this.showNotification("New clipboard content added to history", "success", 2000);
+      } else {
+        this.showNotification("Clipboard refreshed - no new content found", "info", 2000);
+      }
+      
+      console.log("Manual clipboard refresh completed, new content found:", foundNewContent);
+    } catch (error) {
+      console.error("Failed to refresh clipboard:", error);
+      this.showNotification("Failed to access clipboard: " + error.message, "error", 4000);
+    }
+  }
+
   // Update clipboard view
   updateClipboardView() {
+    // If we have a connected clipboard view (with sync), delegate to it
+    if (this.clipboardView && this.isConnected) {
+      console.log("Delegating clipboard display to connected ClipboardView");
+      this.clipboardView.updateClipboardDisplay();
+      return;
+    }
+    
+    // Otherwise, handle local-only display
     if (!this.clipboardManager || !this.clipboardEntries) return;
     
-    const clips = this.clipboardManager.getAllClips();
+    const clips = this.clipboardManager.getClips();
     
     // Update entries count
     if (this.entriesCount) {
@@ -682,6 +805,29 @@ class KlipyApp {
       `;
       this.clipboardEntries.appendChild(clipElement);
     });
+  }
+
+  // Handle new clipboard item
+  handleNewClip(clip) {
+    console.log('New clipboard item:', clip.text.substring(0, 50) + '...');
+    
+    // Send to Multisynq if connected
+    if (this.clipboardView && this.isConnected) {
+      try {
+        this.clipboardView.publish("clipboard", "add-clip", {
+          text: clip.text,
+          userId: this.currentUser?.id,
+          deviceId: this.clipboardView.deviceId || "unknown",
+          deviceName: navigator.userAgent.includes("Mobile") ? "Mobile Device" : "Desktop"
+        });
+        
+        console.log('Clipboard data sent to Multisynq');
+        // Show quick sync feedback
+        this.showNotification('Synced!', 'success', 1000);
+      } catch (error) {
+        console.error('Failed to send clipboard data:', error);
+      }
+    }
   }
 
   // Helper function to escape HTML
@@ -1247,6 +1393,9 @@ class KlipyApp {
   async attemptReconnection() {
     try {
       if (this.session && this.currentUser && this.apiKey) {
+        // Save current sync state before reconnection
+        const wasSyncActive = this.syncToggleBtn?.getAttribute("data-active") === "true";
+        
         // Clean up existing session monitoring
         this.cleanupSessionMonitoring();
         
@@ -1267,6 +1416,34 @@ class KlipyApp {
         if (this.syncStatus) {
           this.syncStatus.textContent = "Connected to Multisynq - ready to sync";
           this.syncStatus.classList.add("active");
+        }
+        
+        // Restore sync state if it was active before disconnection
+        if (wasSyncActive) {
+          console.log("Restoring sync state after reconnection");
+          setTimeout(async () => {
+            // Check and add current clipboard content after reconnection
+            if (this.clipboardManager) {
+              await this.clipboardManager.addCurrentClipboardIfNew();
+              this.updateClipboardView();
+              
+              // Restart monitoring if it was active
+              if (!this.clipboardManager.isMonitoring) {
+                await this.clipboardManager.startMonitoring();
+              }
+              
+              // Also restart view monitoring
+              if (this.clipboardView && !this.clipboardView.isMonitoring) {
+                this.clipboardView.startMonitoring();
+              }
+            }
+          }, 1000); // Small delay to ensure everything is initialized
+        } else {
+          // Just check current clipboard without starting monitoring
+          if (this.clipboardManager) {
+            await this.clipboardManager.addCurrentClipboardIfNew();
+            this.updateClipboardView();
+          }
         }
       }
     } catch (error) {
@@ -1337,6 +1514,6 @@ class KlipyApp {
 
 // Initialize app when DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
-  window.app = new KlipyApp();
-  window.app.init();
+  const app = new KlipyApp();
+  app.init();
 });
