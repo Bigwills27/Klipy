@@ -28,14 +28,21 @@
                 <div class="form-group">
                     <label for="login-email">Email</label>
                     <input type="email" id="login-email" required>
+                    <div class="email-status" id="email-status" style="display: none;">
+                        <span class="email-status-text"></span>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="login-password">Password</label>
                     <input type="password" id="login-password" required>
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="login-apikey-group">
                     <label for="login-apikey">Multisynq API Key</label>
                     <input type="text" id="login-apikey" placeholder="Get from multisynq.io/coder" required>
+                    <div class="input-help">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Your API key is required for first-time login</span>
+                    </div>
                 </div>
                 <button type="submit" class="auth-btn">Sign In</button>
                 <p class="auth-switch">
@@ -86,7 +93,7 @@
                         <style>
                             .c {
                                 fill: none;
-                                stroke: #8b5cf6;
+                                stroke: #002bd8;
                                 stroke-linecap: round;
                                 stroke-linejoin: round;
                             }
@@ -173,9 +180,9 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="nav-link">
-                            <i class="fas fa-question-circle"></i>
-                            <span>Help & Support</span>
+                        <a href="#" class="nav-link" id="about-link">
+                            <i class="fas fa-info-circle"></i>
+                            <span>About</span>
                         </a>
                     </li>
                 </ul>
@@ -193,6 +200,9 @@
                 </div>
             </div>
         </aside>
+
+        <!-- Mobile Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
         <!-- Main Content -->
         <main class="main-content">
@@ -264,6 +274,225 @@
             <div class="notification-actions">
                 <button class="notification-btn primary" id="notification-copy">Copy</button>
                 <button class="notification-btn" id="notification-dismiss">Dismiss</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="modal-close" id="settings-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>API Key Management</h3>
+                    <div class="settings-card">
+                        <div class="settings-info">
+                            <div class="settings-label">Current API Key Status</div>
+                            <div class="settings-value" id="api-key-status">Loading...</div>
+                        </div>
+                        <div class="settings-actions">
+                            <button class="settings-btn primary" id="change-api-key-btn">
+                                <i class="fas fa-key"></i>
+                                Change API Key
+                            </button>
+                            <button class="settings-btn secondary" id="remove-api-key-btn" style="display: none;">
+                                <i class="fas fa-trash"></i>
+                                Remove Stored Key
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="api-key-form" id="api-key-form" style="display: none;">
+                        <div class="form-group">
+                            <label for="new-api-key">New API Key</label>
+                            <input type="text" id="new-api-key" placeholder="Enter your Multisynq API key" required>
+                            <div class="input-help">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Get your API key from <a href="https://multisynq.io/coder" target="_blank">multisynq.io/coder</a></span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="store-api-key" checked>
+                                <span class="checkbox-text">Store API key securely for future logins</span>
+                            </label>
+                            <div class="input-help privacy-note">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>Your API key will be encrypted and stored securely. You can remove it anytime.</span>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="settings-btn primary" id="save-api-key-btn">
+                                <i class="fas fa-save"></i>
+                                Save API Key
+                            </button>
+                            <button class="settings-btn" id="cancel-api-key-btn">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-warning" id="api-key-warning" style="display: none;">
+                        <div class="warning-content">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div class="warning-text">
+                                <strong>Important:</strong> Changing your API key will affect all your devices. 
+                                Make sure to use the same API key across all devices to maintain sync functionality.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>Appearance</h3>
+                    <div class="settings-card">
+                        <div class="settings-info">
+                            <div class="settings-label">Theme</div>
+                            <div class="settings-value">Choose your preferred theme</div>
+                        </div>
+                        <div class="theme-switcher">
+                            <label class="theme-option">
+                                <input type="radio" name="theme" value="light">
+                                <span>☀️ Light</span>
+                            </label>
+                            <label class="theme-option">
+                                <input type="radio" name="theme" value="dark" checked>
+                                <span>🌙 Dark</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Key Storage Toast -->
+    <div id="api-key-toast" class="toast" style="display: none;">
+        <div class="toast-content">
+            <i class="fas fa-key"></i>
+            <div class="toast-text">
+                <div class="toast-title">Save API Key?</div>
+                <div class="toast-message">Would you like to securely store your API key for faster future logins?</div>
+            </div>
+            <div class="toast-actions">
+                <button class="toast-btn primary" id="save-key-toast">Yes, Save It</button>
+                <button class="toast-btn" id="skip-key-toast">No, Thanks</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div id="about-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>About Klipy</h2>
+                <button class="modal-close" id="about-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="about-section">
+                    <div class="about-hero">
+                        <div class="about-logo">
+                            <i class="fas fa-clipboard-list"></i>
+                            <h3>Klipy</h3>
+                        </div>
+                        <p class="about-tagline">Smart clipboard sync that actually works (most of the time) 📋✨</p>
+                    </div>
+
+                    <div class="about-features">
+                        <h4>✨ Features</h4>
+                        <ul class="feature-list">
+                            <li><strong>Cross-Device Sync:</strong> Copy on one device, paste on another - like magic, but with actual technology</li>
+                            <li><strong>Real-time Updates:</strong> Your clipboard items appear faster than you can say "Ctrl+C"</li>
+                            <li><strong>Secure Storage:</strong> Your data is encrypted because we care about your private keys and seed phrases</li>
+                            <li><strong>Smart Access:</strong> Instantly access your recent clips across all devices - no manual organizing needed</li>
+                            <li><strong>Privacy First:</strong> We don't read your clipboard, promise (even the funny stuff)</li>
+                        </ul>
+                    </div>
+
+                    <div class="about-tech">
+                        <h4>🔧 Technology</h4>
+                        <div class="tech-stack">
+                            <div class="tech-item">
+                                <strong>Frontend:</strong> Vanilla JavaScript, CSS3, HTML5
+                            </div>
+                            <div class="tech-item">
+                                <strong>Backend:</strong> Node.js, Express, MongoDB
+                            </div>
+                            <div class="tech-item">
+                                <strong>Sync Engine:</strong> 
+                                <a href="https://multisynq.io" target="_blank" class="multisynq-link">
+                                    <img src="https://img.cryptorank.io/coins/multisynq1713168982806.png" alt="MultiSynq" class="multisynq-logo">
+                                    MultiSynq
+                                </a>
+                            </div>
+                            <div class="tech-item">
+                                <strong>Security:</strong> JWT Authentication, AES Encryption
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="about-usage">
+                        <h4>🚀 How to Use</h4>
+                        <ol class="usage-steps">
+                            <li><strong>Connect:</strong> First <a href="https://multisynq.io/auth?referral=b4faacd81ae3db74" target="_blank" class="multisynq-link">join MultiSynq and get your API key</a>, then copy it and come back to Klipy to sign up</li>
+                            <li><strong>Sync:</strong> Once signed in, activate sync to paste your most recent clip. Sign in on a different device and watch the magic ✨</li>
+                            <li><strong>Copy & Paste:</strong> Copy text anywhere, access everywhere</li>
+                            <li><strong>Manage:</strong> View history and manage your klips with ease</li>
+                            <li><strong>Enjoy:</strong> Never lose that important link again!</li>
+                        </ol>
+                    </div>
+
+                    <div class="about-when">
+                        <h4>⏰ When to Use</h4>
+                        <div class="use-cases">
+                            <div class="use-case">📱 <strong>Multi-device workflows</strong> - Working across phone, tablet, and computer</div>
+                            <div class="use-case">💼 <strong>Remote collaboration</strong> - Sharing clips between team devices</div>
+                            <div class="use-case">🏠 <strong>Home office setup</strong> - Seamless switching between work and personal devices</div>
+                            <div class="use-case">✈️ <strong>Travel productivity</strong> - Keep your clipboard in sync on the go</div>
+                            <div class="use-case">🎯 <strong>Content creation</strong> - Managing research links, quotes, and references</div>
+                        </div>
+                    </div>
+
+                    <div class="about-footer">
+                        <div class="footer-content">
+                            <div class="footer-links">
+                                <h4>📞 Contact & Support</h4>
+                                <p>Questions? Ideas? Found a bug that makes you question your life choices?</p>
+                                <div class="contact-info">
+                                    <div class="contact-item">
+                                        <i class="fas fa-envelope"></i>
+                                        <span>Email: ajbodesecond@gmail.com</span>
+                                    </div>
+                                    <div class="contact-item">
+                                        <i class="fas fa-globe"></i>
+                                        <span>Web: www.klipy.app</span>
+                                    </div>
+                                    <div class="contact-item">
+                                        <i class="fas fa-bug"></i>
+                                        <span>Found a bug? Please don't squish it, report it!</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="footer-legal">
+                                <div class="made-with">
+                                    <span>Made with </span>
+                                    <a href="https://multisynq.io" target="_blank" class="multisynq-link">
+                                        <img src="https://img.cryptorank.io/coins/multisynq1713168982806.png" alt="MultiSynq" class="multisynq-logo-small">
+                                        MultiSynq
+                                    </a>
+                                </div>
+                                <div class="copyright">
+                                    <p>&copy; 2025 Klipy. All rights reserved.</p>
+                                    <p>No clipboards were harmed in the making of this app.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
