@@ -17,7 +17,6 @@ class KlipyApp {
 
     this.initializeElements();
     this.bindEvents();
-    this.initializeTheme();
     this.init();
 
     // Why do programmers prefer dark mode? Because light attracts bugs! 🐛
@@ -147,37 +146,6 @@ class KlipyApp {
         }
       }
     });
-  }
-
-  // Initialize theme system
-  initializeTheme() {
-    // Get saved theme or default to dark
-    const savedTheme = localStorage.getItem("klipy-theme") || "dark";
-    this.applyTheme(savedTheme);
-
-    // Set up theme toggle event listeners
-    const themeRadios = document.querySelectorAll('input[name="theme"]');
-    themeRadios.forEach((radio) => {
-      radio.addEventListener("change", (e) => {
-        if (e.target.checked) {
-          this.applyTheme(e.target.value);
-        }
-      });
-    });
-  }
-
-  // Apply theme to the document
-  applyTheme(theme) {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("klipy-theme", theme);
-
-    // Update radio button state
-    const themeRadio = document.querySelector(
-      `input[name="theme"][value="${theme}"]`
-    );
-    if (themeRadio) {
-      themeRadio.checked = true;
-    }
   }
 
   showSyncStatus() {
@@ -1051,9 +1019,6 @@ class KlipyApp {
       // Set up error monitoring for production
       this.setupErrorMonitoring();
 
-      // Set up connection monitoring
-      this.setupConnectionMonitoring();
-
       // Check for existing session first (24h auto-login)
       this.showNotification("Checking for existing session...", "info", 2000);
       const hasValidSession = await this.checkExistingSession();
@@ -1062,7 +1027,7 @@ class KlipyApp {
         // User has valid session - auto login
         this.showNotification("Logging you in automatically...", "info", 2000);
         this.showMainInterface();
-        this.setupAutoReconnect();
+        this.setupConnectionStability();
       } else {
         // Show auth interface
         this.showAuthInterface();
@@ -1071,7 +1036,6 @@ class KlipyApp {
       // Set up global error handlers
       this.setupGlobalErrorHandlers();
 
-      console.log("Klipy app initialized successfully");
     } catch (error) {
       console.error("Failed to initialize app:", error);
       this.handleCriticalError(error);
@@ -1096,8 +1060,6 @@ class KlipyApp {
       maxDelay: 30000, // Cap at 30 seconds
       currentDelay: 1000,
     };
-
-    console.log("Auto-reconnect system initialized");
   }
 
   // Handle network restoration
@@ -1360,7 +1322,6 @@ class KlipyApp {
       const sessionState = localStorage.getItem("klipy-session-state");
 
       if (!token || !sessionState) {
-        console.log("No existing session found");
         return false;
       }
 
@@ -1370,7 +1331,6 @@ class KlipyApp {
       const maxAge = 24 * 60 * 60 * 1000; // 24 hours
 
       if (sessionAge > maxAge) {
-        console.log("Session expired (older than 24 hours)");
         this.clearSession();
         return false;
       }
@@ -1379,7 +1339,6 @@ class KlipyApp {
       this.showNotification("Validating your session...", "info", 1500);
       const isValid = await this.validateSession(token);
       if (!isValid) {
-        console.log("Session validation failed");
         this.clearSession();
         this.showNotification(
           "Session expired. Please log in again.",
@@ -1437,7 +1396,6 @@ class KlipyApp {
         timestamp: Date.now(),
       };
       localStorage.setItem("klipy-session-state", JSON.stringify(sessionState));
-      console.log("Session state saved");
     } catch (error) {
       console.warn("Failed to save session state:", error);
     }
@@ -1447,12 +1405,10 @@ class KlipyApp {
   clearSession() {
     localStorage.removeItem("klipy-token");
     localStorage.removeItem("klipy-session-state");
-    console.log("Session cleared");
   }
 
   // Show authentication interface
   showAuthInterface() {
-    console.log("Showing authentication interface");
 
     // Show auth container and hide dashboard
     if (this.authContainer) {
@@ -1468,7 +1424,6 @@ class KlipyApp {
 
   // Show main interface (same as showDashboard but for consistency)
   showMainInterface() {
-    console.log("Showing main interface");
     return this.showDashboard();
   }
 
