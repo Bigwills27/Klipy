@@ -12,28 +12,28 @@
     --dodger-blue: #1098f7;
     --black: #080705;
     --snow: #f9f4f5;
-    
+
     /* Theme Variables using only the 3 colors */
     --bg-primary: var(--black);
     --bg-secondary: var(--black);
     --bg-tertiary: var(--black);
     --bg-glass: rgba(249, 244, 245, 0.05);
     --bg-glass-strong: rgba(249, 244, 245, 0.08);
-    
+
     --text-primary: var(--snow);
     --text-secondary: var(--snow);
     --text-accent: var(--dodger-blue);
-    
+
     --border-color: rgba(16, 152, 247, 0.2);
     --border-glass: rgba(249, 244, 245, 0.1);
-    
+
     --accent-color: var(--dodger-blue);
     --accent-hover: var(--dodger-blue);
-    
+
     --shadow-light: rgba(8, 7, 5, 0.3);
     --shadow-heavy: rgba(8, 7, 5, 0.5);
     --shadow-glass: 0 8px 32px rgba(8, 7, 5, 0.2);
-    
+
     --success-color: var(--dodger-blue);
     --warning-color: var(--dodger-blue);
     --error-color: var(--dodger-blue);
@@ -51,7 +51,8 @@ body {
 }
 
 /* Prevent horizontal scrolling on mobile */
-html, body {
+html,
+body {
     max-width: 100%;
     overflow-x: hidden;
 }
@@ -68,7 +69,12 @@ html, body {
 }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-family: "Caprasimo", cursive;
     font-weight: 900;
     color: var(--snow);
@@ -103,7 +109,12 @@ h4 {
 }
 
 /* Regular text */
-p, span, div, a, input, button {
+p,
+span,
+div,
+a,
+input,
+button {
     font-family: "Aleo", serif;
 }
 
@@ -1141,17 +1152,17 @@ p, span, div, a, input, button {
     .sidebar-toggle-btn {
         display: none;
     }
-    
+
     /* Push main content to the right of sidebar on desktop */
     .main-content {
         margin-left: 300px;
     }
-    
+
     /* Ensure sidebar is always visible on desktop */
     .sidebar {
         transform: translateX(0) !important;
     }
-    
+
     /* Hide overlay on desktop */
     .sidebar-overlay {
         display: none !important;
@@ -1598,6 +1609,7 @@ p, span, div, a, input, button {
         opacity: 0;
         transform: translateY(-20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1814,6 +1826,7 @@ p, span, div, a, input, button {
         opacity: 0;
         transform: translateX(100%);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -1902,6 +1915,7 @@ p, span, div, a, input, button {
         opacity: 0;
         transform: translateY(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1910,16 +1924,17 @@ p, span, div, a, input, button {
 
 /* Responsive Design */
 @media (max-width: 1023px) {
+
     /* Mobile sidebar should overlay and be hidden by default */
     .sidebar {
         transform: translateX(-100%);
         z-index: 1000;
     }
-    
+
     .sidebar.active {
         transform: translateX(0);
     }
-    
+
     /* Add overlay for mobile sidebar */
     .sidebar-overlay {
         position: fixed;
@@ -1931,7 +1946,7 @@ p, span, div, a, input, button {
         z-index: 999;
         display: none;
     }
-    
+
     /* Main content should not have margin on mobile */
     .main-content {
         margin-left: 0;
@@ -1946,20 +1961,20 @@ p, span, div, a, input, button {
         max-height: 100vh;
         height: 100vh;
     }
-    
+
     .settings-actions {
         flex-direction: column;
     }
-    
+
     .settings-btn {
         width: 100%;
         justify-content: center;
     }
-    
+
     .form-actions {
         flex-direction: column;
     }
-    
+
     .toast {
         top: 10px;
         right: 10px;
@@ -2006,11 +2021,17 @@ p, span, div, a, input, button {
     opacity: 0.9;
 }
 
-.about-features, .about-tech, .about-usage, .about-when {
+.about-features,
+.about-tech,
+.about-usage,
+.about-when {
     margin-bottom: 32px;
 }
 
-.about-features h4, .about-tech h4, .about-usage h4, .about-when h4 {
+.about-features h4,
+.about-tech h4,
+.about-usage h4,
+.about-when h4 {
     color: var(--text-accent);
     font-size: 18px;
     font-weight: 600;
@@ -2068,8 +2089,7 @@ p, span, div, a, input, button {
 }
 
 .multisynq-logo {
-    width: 24px;
-    height: 24px;
+    width: 100px;
     border-radius: 4px;
 }
 
@@ -2196,30 +2216,30 @@ p, span, div, a, input, button {
     .about-hero {
         padding: 16px;
     }
-    
+
     .about-logo {
         flex-direction: column;
         gap: 8px;
     }
-    
+
     .about-logo h3 {
         font-size: 24px;
     }
-    
+
     .usage-steps li {
         padding-left: 50px;
     }
-    
+
     .usage-steps li::before {
         width: 28px;
         height: 28px;
         font-size: 12px;
     }
-    
+
     .footer-content {
         text-align: center;
     }
-    
+
     .made-with {
         flex-direction: column;
         gap: 4px;
