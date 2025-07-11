@@ -50,6 +50,23 @@ body {
     min-height: 100vh;
 }
 
+/* Prevent horizontal scrolling on mobile */
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Ensure containers don't exceed viewport width */
+* {
+    max-width: 100%;
+}
+
+/* Mobile-first responsive base */
+.app-container {
+    width: 100%;
+    max-width: 100vw;
+}
+
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
     font-family: "Caprasimo", cursive;
@@ -1435,7 +1452,7 @@ p, span, div, a, input, button {
 }
 
 .sidebar-btn.secondary:hover {
-    background: #2a1a1a;
+    background: #2a1a2a;
     border-color: #ff6666;
     color: #ff8888;
 }
@@ -1918,6 +1935,7 @@ p, span, div, a, input, button {
     /* Main content should not have margin on mobile */
     .main-content {
         margin-left: 0;
+        width: 100%;
     }
 }
 
