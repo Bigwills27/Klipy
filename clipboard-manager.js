@@ -214,7 +214,7 @@ class ClipboardManager {
       }
 
       // Add current clipboard content to history
-      console.log("Adding current clipboard content to history:", currentText.substring(0, 50) + "...");
+      // 📋 Found something interesting in your clipboard! Adding it to the collection! 🗃️
       this.addClip(currentText);
       return true;
     } catch (error) {

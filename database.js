@@ -62,12 +62,7 @@ class KlipyDatabase {
 
   async authenticateUser(email, password) {
     try {
-      console.log(
-        "Attempting authentication for:",
-        email,
-        "using API:",
-        `${this.baseUrl}/api/users`
-      );
+      // 🔍 Snooping around? We're just authenticating users, nothing to see here! 👀
 
       const response = await fetch(`${this.baseUrl}/api/users`, {
         method: "POST",
@@ -91,10 +86,7 @@ class KlipyDatabase {
       }
 
       const result = await response.json();
-      console.log(
-        "Authentication result:",
-        result.success ? "Success" : "Failed"
-      );
+      // 🎉 Authentication dance complete! Either we're in or we're not! 💃
       return result;
     } catch (error) {
       console.error("Error authenticating user:", error);

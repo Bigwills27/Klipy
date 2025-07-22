@@ -10,6 +10,7 @@ class ClipboardView extends Multisynq.View {
     this.database = new KlipyDatabase();
     this.isMonitoring = false;
     this.isDeviceActive = false; // Track if this device is active for sync
+    this.isDeviceRegistered = false; // Track if device is already registered to avoid duplicates
     this.userId = null; // Will be set from logged-in user
     this.userEmail = null; // Will be set from logged-in user
     this.userName = null; // Will be set from logged-in user
@@ -249,12 +250,16 @@ class ClipboardView extends Multisynq.View {
 
   // Register this device with the model
   registerDevice() {
-    this.publish("clipboard", "register-device", {
-      deviceId: this.deviceId,
-      userId: this.userId,
-      deviceName: this.deviceName,
-      viewId: this.viewId,
-    });
+    // Only register if not already registered to avoid duplicates
+    if (!this.isDeviceRegistered) {
+      this.publish("clipboard", "register-device", {
+        deviceId: this.deviceId,
+        userId: this.userId,
+        deviceName: this.deviceName,
+        viewId: this.viewId,
+      });
+      this.isDeviceRegistered = true;
+    }
   }
 
   // Unregister this device from the model
@@ -314,12 +319,7 @@ class ClipboardView extends Multisynq.View {
 
   // Handle clip added event from model
   handleClipAdded(clip) {
-    console.log(
-      "Model notified: clip added by",
-      clip.userId,
-      ":",
-      clip.text.substring(0, 30) + "..."
-    );
+    // 📝 Someone just shared their clipboard wisdom! Time to sync! ✨
 
     // Check if this clip is from another device and we should auto-clipboard it
     if (clip.deviceId !== this.deviceId && this.isDeviceActive) {
@@ -349,8 +349,10 @@ class ClipboardView extends Multisynq.View {
 
   // Handle devices updated event from model
   handleDevicesUpdated(data) {
-    console.log("Devices updated:", data.count, "devices connected");
-    this.updateDeviceDisplay(data.devices);
+    // 🕵️ Hey developer! Looking for bugs? This one's on the house! 
+    // Use the count from the model directly, which should be accurate
+    const actualCount = data.count || (data.devices ? data.devices.length : 1);
+    this.updateDeviceDisplay(data.devices || [], actualCount);
   }
 
   // Handle device activated event from model
@@ -398,8 +400,9 @@ class ClipboardView extends Multisynq.View {
   }
 
   // Update device display in UI
-  updateDeviceDisplay(devices) {
-    const deviceCount = devices.length;
+  updateDeviceDisplay(devices, deviceCount) {
+    // Use the passed count, or fall back to devices array length
+    const finalCount = deviceCount !== undefined ? deviceCount : (devices ? devices.length : 1);
 
     // Update sync status with device count
     if (this.syncStatus) {
@@ -408,8 +411,8 @@ class ClipboardView extends Multisynq.View {
                     <div class="device-indicator ${
                       this.isDeviceActive ? "active" : ""
                     }"></div>
-                    Connected - ${deviceCount} device${
-        deviceCount === 1 ? "" : "s"
+                    Connected - ${finalCount} device${
+        finalCount === 1 ? "" : "s"
       } syncing
                 </div>
             `;
@@ -417,8 +420,8 @@ class ClipboardView extends Multisynq.View {
 
     // Update dashboard device count stat
     if (this.deviceCount) {
-      this.deviceCount.textContent = `${deviceCount} device${
-        deviceCount === 1 ? "" : "s"
+      this.deviceCount.textContent = `${finalCount} device${
+        finalCount === 1 ? "" : "s"
       }`;
     }
 
@@ -747,11 +750,7 @@ synchronized across devices`,
       viewId: this.viewId,
     });
 
-    console.log(
-      "User info set in ClipboardView:",
-      this.userName,
-      this.userEmail
-    );
+    // 🎭 User info configured! Now they can sync their clipboard like a pro! 🚀
   }
 
   // Handle incoming clip from another device

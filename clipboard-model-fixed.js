@@ -140,7 +140,7 @@ class ClipboardModel extends Multisynq.Model {
       // Persist the updated data
       this.persistClipboardData();
 
-      console.log("Clip added:", clip.text.substring(0, 50) + "...");
+      // 🎯 Got it! Another fine addition to the clipboard collection! 📝
     }
   }
 
@@ -188,7 +188,7 @@ class ClipboardModel extends Multisynq.Model {
   handleRegisterDevice(data) {
     // Check if device is already registered
     if (this.connectedDevices.has(data.deviceId)) {
-      console.log("Device already registered:", data.deviceId);
+      // 🔄 This device is already in the club! Just updating their activity timestamp.
       // Update last activity time
       const device = this.connectedDevices.get(data.deviceId);
       device.lastActivity = this.now();
@@ -216,7 +216,7 @@ class ClipboardModel extends Multisynq.Model {
       count: this.connectedDevices.size,
     });
 
-    console.log("Device registered:", data.deviceId);
+    // 🎉 New device joined the clipboard party! Welcome aboard! 📱
   }
 
   // Handle device unregistration
